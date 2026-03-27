@@ -1396,11 +1396,16 @@
     /** Load all data for the current user; migrate from localStorage on first login. */
     async function loadData() {
       const uid = currentUser.id;
+      console.log('[loadData] uid =', uid);
 
-      const [{ data: txnRows }, { data: recRows }] = await Promise.all([
+      const [txnResult, recResult] = await Promise.all([
         db.from('transactions').select('*').eq('user_id', uid),
         db.from('recurring_items').select('*').eq('user_id', uid),
       ]);
+      const { data: txnRows, error: txnErr } = txnResult;
+      const { data: recRows, error: recErr } = recResult;
+      console.log('[loadData] txnRows:', txnRows?.length, 'error:', txnErr);
+      console.log('[loadData] recRows:', recRows?.length, 'error:', recErr);
 
       transactions = (txnRows || []).map(r => ({
         id: r.id, type: r.type, amount: r.amount,
@@ -2256,12 +2261,14 @@
     // --- INITIALIZATION ---
     // =============================================================================
     async function init() {
-      const { data: { session } } = await db.auth.getSession();
+      const { data: { session }, error: sessionErr } = await db.auth.getSession();
+      console.log('[init] session:', session?.user?.id, 'error:', sessionErr);
       if (!session) {
         window.location.replace('login.html');
         return;
       }
       currentUser = session.user;
+      console.log('[init] currentUser.id =', currentUser.id);
 
       await loadData();
       await processRecurring();
