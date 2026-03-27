@@ -1,7 +1,7 @@
 // Service Worker — Personal Finance Tracker
 // Caches the app shell + Chart.js so the app works fully offline.
 
-const CACHE_NAME  = 'finance-tracker-v3';
+const CACHE_NAME  = 'finance-tracker-v4';
 const CHART_JS_URL   = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
 const SUPABASE_JS_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
 
@@ -47,18 +47,21 @@ self.addEventListener('activate', event => {
 });
 
 // --- FETCH ---
-// Cache-first for all requests: serve from cache, fall back to network
+// Cache-first for local assets and CDN scripts only.
+// Never cache Supabase API calls — those must always hit the network.
 self.addEventListener('fetch', event => {
-  // Only handle GET requests
   if (event.request.method !== 'GET') return;
+
+  const url = new URL(event.request.url);
+
+  // Pass Supabase API requests straight through — no caching
+  if (url.hostname.endsWith('.supabase.co')) return;
 
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
 
-      // Not in cache — fetch from network and cache the response
       return fetch(event.request).then(response => {
-        // Only cache valid responses
         if (!response || response.status !== 200 || response.type === 'error') {
           return response;
         }
@@ -66,7 +69,6 @@ self.addEventListener('fetch', event => {
         caches.open(CACHE_NAME).then(cache => cache.put(event.request, toCache));
         return response;
       }).catch(() => {
-        // Network failed and no cache — nothing to serve
         return new Response('Offline — resource not available.', {
           status: 503,
           headers: { 'Content-Type': 'text/plain' },
