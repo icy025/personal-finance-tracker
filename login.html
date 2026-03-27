@@ -32,6 +32,11 @@
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    .status-bar-spacer {
+      height: 54px;
+      background: var(--color-bg);
+    }
+
     body {
       font-family: var(--font-base);
       background: var(--color-bg);
@@ -40,7 +45,7 @@
       display: flex;
       align-items: flex-start;
       justify-content: center;
-      padding: 104px 16px 48px;
+      padding: 48px 16px;
     }
 
     /* ── Brand ─────────────────────────────────────── */
@@ -209,6 +214,7 @@
   </style>
 </head>
 <body>
+  <div class="status-bar-spacer"></div>
   <div class="login-shell">
     <div class="brand">Finance Tracker</div>
 

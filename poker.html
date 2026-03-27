@@ -75,9 +75,17 @@
     /* =============================================================================
        HEADER
     ============================================================================= */
+    .status-bar-spacer {
+      height: 54px;
+      background: var(--color-primary);
+      position: sticky;
+      top: 0;
+      z-index: 101;
+    }
+
     .app-header {
       background: var(--color-primary);
-      padding: calc(var(--spacing-md) + 56px) var(--spacing-xl) var(--spacing-md);
+      padding: var(--spacing-md) var(--spacing-xl);
       position: sticky;
       top: 0;
       z-index: 100;
@@ -794,6 +802,7 @@
   <!-- =====================================================================
        HEADER — always visible, all-time unfiltered stats
   ====================================================================== -->
+  <div class="status-bar-spacer"></div>
   <header class="app-header">
     <div class="header-inner">
       <div class="header-top">

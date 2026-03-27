@@ -1,7 +1,7 @@
 // Service Worker — Personal Finance Tracker
 // Caches the app shell + Chart.js so the app works fully offline.
 
-const CACHE_NAME  = 'finance-tracker-v6';
+const CACHE_NAME  = 'finance-tracker-v7';
 const CHART_JS_URL   = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
 const SUPABASE_JS_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
 
