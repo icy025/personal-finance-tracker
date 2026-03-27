@@ -7,7 +7,7 @@
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#1565c0">
+  <meta name="theme-color" content="#1a1a1a">
 
   <!-- iOS home screen support -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -20,31 +20,31 @@
        CSS CUSTOM PROPERTIES
     ============================================================================= */
     :root {
-      --color-bg: #f5f5f5;
-      --color-surface: #ffffff;
-      --color-border: #e0e0e0;
-      --color-border-focus: #1976d2;
-      --color-text: #212121;
-      --color-text-muted: #757575;
+      --color-bg: #1a1a1a;
+      --color-surface: #242424;
+      --color-border: #383838;
+      --color-border-focus: #757575;
+      --color-text: #f0f0f0;
+      --color-text-muted: #9e9e9e;
 
-      --color-income: #2e7d32;
-      --color-income-bg: #e8f5e9;
-      --color-income-hover: #1b5e20;
+      --color-income: #66bb6a;
+      --color-income-bg: #1b3a1d;
+      --color-income-hover: #81c784;
 
-      --color-expense: #c62828;
-      --color-expense-bg: #ffebee;
-      --color-expense-hover: #8b0000;
+      --color-expense: #ef5350;
+      --color-expense-bg: #3a1515;
+      --color-expense-hover: #e57373;
 
-      --color-primary: #1565c0;
-      --color-primary-hover: #0d47a1;
-      --color-primary-bg: #e3f2fd;
+      --color-primary: #757575;
+      --color-primary-hover: #8a8a8a;
+      --color-primary-bg: #333333;
 
-      --color-neutral: #9e9e9e;
-      --color-success: #388e3c;
+      --color-neutral: #757575;
+      --color-success: #66bb6a;
 
-      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-      --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.10);
-      --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
 
       --radius-sm: 4px;
       --radius-md: 8px;
@@ -87,7 +87,7 @@
     .app-header {
       background: var(--color-surface);
       border-bottom: 1px solid var(--color-border);
-      padding: calc(var(--spacing-md) + env(safe-area-inset-top, 0px)) var(--spacing-xl) var(--spacing-md);
+      padding: calc(env(safe-area-inset-top, 44px) + var(--spacing-md)) var(--spacing-xl) var(--spacing-md);
       position: sticky;
       top: 0;
       z-index: 100;
@@ -181,7 +181,7 @@
       font-weight: 600;
       font-size: 0.9rem;
       color: var(--color-text);
-      background: #fafafa;
+      background: #2a2a2a;
     }
 
     .panel__body {
@@ -240,6 +240,8 @@
 
     .form-control {
       width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
       padding: 9px var(--spacing-md);
       border: 1.5px solid var(--color-border);
       border-radius: var(--radius-sm);
@@ -251,14 +253,20 @@
       font-family: var(--font-base);
     }
 
+    input[type="date"].form-control {
+      -webkit-appearance: none;
+      appearance: none;
+      text-align: center;
+    }
+
     .form-control:focus {
       border-color: var(--color-border-focus);
-      box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.12);
+      box-shadow: 0 0 0 3px rgba(117, 117, 117, 0.25);
     }
 
     .form-control.error {
       border-color: var(--color-expense);
-      box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.1);
+      box-shadow: 0 0 0 3px rgba(239, 83, 80, 0.2);
     }
 
     .form-error {
@@ -302,7 +310,7 @@
       padding: var(--spacing-md) var(--spacing-lg);
       border-bottom: 1px solid var(--color-border);
       align-items: center;
-      background: #fafafa;
+      background: #2a2a2a;
     }
 
     .filter-search        { min-width: 160px; flex: 2; }
@@ -380,7 +388,7 @@
 
     .transaction-item:hover {
       box-shadow: var(--shadow-md);
-      border-color: #c8c8c8;
+      border-color: #555555;
     }
 
     .transaction-info {
@@ -569,7 +577,7 @@
     }
 
     .category-table tr:last-child td { border-bottom: none; }
-    .category-table tr:hover td      { background: #fafafa; }
+    .category-table tr:hover td      { background: #2a2a2a; }
 
     .progress-cell {
       display: flex;
@@ -922,7 +930,7 @@
 
     .panel__header--collapsible:hover {
       color: var(--color-text);
-      background: #fafafa;
+      background: #2a2a2a;
     }
 
     .panel__header--collapsible[aria-expanded="true"] {
@@ -963,7 +971,7 @@
       transition: color 0.15s, border-color 0.15s;
     }
 
-    .btn-signout:hover { color: var(--color-text); border-color: #bdbdbd; }
+    .btn-signout:hover { color: var(--color-text); border-color: #666666; }
 
     /* =============================================================================
        LOADING OVERLAY
@@ -1396,16 +1404,11 @@
     /** Load all data for the current user; migrate from localStorage on first login. */
     async function loadData() {
       const uid = currentUser.id;
-      console.log('[loadData] uid =', uid);
 
-      const [txnResult, recResult] = await Promise.all([
+      const [{ data: txnRows }, { data: recRows }] = await Promise.all([
         db.from('transactions').select('*').eq('user_id', uid),
         db.from('recurring_items').select('*').eq('user_id', uid),
       ]);
-      const { data: txnRows, error: txnErr } = txnResult;
-      const { data: recRows, error: recErr } = recResult;
-      console.log('[loadData] txnRows:', txnRows?.length, 'error:', txnErr);
-      console.log('[loadData] recRows:', recRows?.length, 'error:', recErr);
 
       transactions = (txnRows || []).map(r => ({
         id: r.id, type: r.type, amount: r.amount,
@@ -1656,8 +1659,8 @@
             datasets: [{
               label: 'Amount Spent',
               data: values,
-              backgroundColor: 'rgba(198, 40, 40, 0.65)',
-              borderColor:     'rgba(198, 40, 40, 0.9)',
+              backgroundColor: 'rgba(239, 83, 80, 0.65)',
+              borderColor:     'rgba(239, 83, 80, 0.9)',
               borderWidth: 1,
               borderRadius: 4,
             }]
@@ -1672,12 +1675,12 @@
             },
             scales: {
               x: {
-                ticks: { callback: val => formatCurrency(val), maxTicksLimit: 5 },
-                grid:  { color: 'rgba(0,0,0,0.05)' }
+                ticks: { callback: val => formatCurrency(val), maxTicksLimit: 5, color: '#9e9e9e' },
+                grid:  { color: 'rgba(255,255,255,0.08)' }
               },
               y: {
                 grid:  { display: false },
-                ticks: { font: { size: 12 } }
+                ticks: { font: { size: 12 }, color: '#f0f0f0' }
               }
             }
           }
@@ -2261,14 +2264,12 @@
     // --- INITIALIZATION ---
     // =============================================================================
     async function init() {
-      const { data: { session }, error: sessionErr } = await db.auth.getSession();
-      console.log('[init] session:', session?.user?.id, 'error:', sessionErr);
+      const { data: { session } } = await db.auth.getSession();
       if (!session) {
         window.location.replace('login.html');
         return;
       }
       currentUser = session.user;
-      console.log('[init] currentUser.id =', currentUser.id);
 
       await loadData();
       await processRecurring();
