@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Poker Tracker</title>
+
+  <!-- PWA (shares manifest with finance tracker; SW caches this page) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1b5e20">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Poker">
+  <link rel="apple-touch-icon" href="poker-icon.svg">
+
+  <style>
+    /* =============================================================================
+       CSS CUSTOM PROPERTIES
+    ============================================================================= */
+    :root {
+      --color-bg: #f5f5f5;
+      --color-surface: #ffffff;
+      --color-border: #e0e0e0;
+      --color-border-focus: #2e7d32;
+      --color-text: #212121;
+      --color-text-muted: #757575;
+
+      --color-win: #2e7d32;
+      --color-win-bg: #e8f5e9;
+      --color-win-hover: #1b5e20;
+
+      --color-loss: #c62828;
+      --color-loss-bg: #ffebee;
+      --color-loss-hover: #8b0000;
+
+      --color-primary: #1b5e20;
+      --color-primary-hover: #145214;
+      --color-primary-bg: #e8f5e9;
+
+      --color-neutral: #9e9e9e;
+      --color-success: #2e7d32;
+
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+      --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.10);
+      --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+
+      --spacing-xs: 4px;
+      --spacing-sm: 8px;
+      --spacing-md: 16px;
+      --spacing-lg: 24px;
+      --spacing-xl: 32px;
+
+      --font-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      --nav-height: 64px;
+    }
+
+    /* =============================================================================
+       RESET & BASE
+    ============================================================================= */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-base);
+      background: var(--color-bg);
+      color: var(--color-text);
+      line-height: 1.5;
+      min-height: 100vh;
+      padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* =============================================================================
+       HEADER
+    ============================================================================= */
+    .app-header {
+      background: var(--color-primary);
+      padding: var(--spacing-md) var(--spacing-xl);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-md);
+    }
+
+    .header-inner { max-width: 680px; margin: 0 auto; }
+
+    .app-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: var(--spacing-md);
+      letter-spacing: -0.3px;
+    }
+
+    .summary-cards {
+      display: flex;
+      gap: var(--spacing-sm);
+      flex-wrap: wrap;
+    }
+
+    .summary-card {
+      flex: 1;
+      min-width: 90px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .summary-card__label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.75);
+      margin-bottom: 2px;
+    }
+
+    .summary-card__value {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.4px;
+    }
+
+    .summary-card--win  .summary-card__value { color: #a5d6a7; }
+    .summary-card--loss .summary-card__value { color: #ef9a9a; }
+    .summary-card--zero .summary-card__value { color: rgba(255, 255, 255, 0.65); }
+
+    /* =============================================================================
+       VIEWS
+    ============================================================================= */
+    .view         { display: none; }
+    .view.active  { display: block; }
+
+    .view-content {
+      max-width: 680px;
+      margin: var(--spacing-lg) auto;
+      padding: 0 var(--spacing-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-md);
+    }
+
+    /* =============================================================================
+       PANELS
+    ============================================================================= */
+    .panel {
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--color-border);
+      overflow: hidden;
+    }
+
+    .panel__header {
+      padding: var(--spacing-md) var(--spacing-lg);
+      border-bottom: 1px solid var(--color-border);
+      font-weight: 600;
+      font-size: 0.9rem;
+      background: #fafafa;
+    }
+
+    .panel__body { padding: var(--spacing-lg); }
+
+    /* =============================================================================
+       FORM CONTROLS
+    ============================================================================= */
+    .form-group { margin-bottom: var(--spacing-md); }
+
+    .form-label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      margin-bottom: var(--spacing-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .form-label-inline {
+      font-size: 0.78rem;
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--color-text-muted);
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 9px var(--spacing-md);
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      color: var(--color-text);
+      background: var(--color-surface);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+      font-family: var(--font-base);
+    }
+
+    .form-control:focus {
+      border-color: var(--color-border-focus);
+      box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.12);
+    }
+
+    .form-control.error {
+      border-color: var(--color-loss);
+      box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.10);
+    }
+
+    .form-error {
+      font-size: 0.78rem;
+      color: var(--color-loss);
+      margin-top: var(--spacing-xs);
+      display: none;
+      font-weight: 500;
+    }
+    .form-error.visible { display: block; }
+
+    /* Date range row */
+    .date-range {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+    }
+    .date-range > input  { flex: 1; }
+    .date-range-sep {
+      font-size: 0.82rem;
+      color: var(--color-text-muted);
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* Financials grid */
+    .financials-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: var(--spacing-sm);
+    }
+    .financials-row .form-group { margin-bottom: 0; }
+
+    /* Live preview box */
+    .session-preview {
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-md);
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: var(--spacing-md);
+      gap: var(--spacing-sm);
+    }
+
+    .preview-item { text-align: center; }
+
+    .preview-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      margin-bottom: 2px;
+    }
+
+    .preview-value {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--color-text-muted);
+    }
+
+    .preview-value--win  { color: var(--color-win); }
+    .preview-value--loss { color: var(--color-loss); }
+
+    /* =============================================================================
+       TAG CHIPS
+    ============================================================================= */
+    .tag-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-xs);
+      margin-bottom: var(--spacing-sm);
+      min-height: 28px;
+    }
+
+    .tag-chip {
+      padding: 4px 12px;
+      border: 1.5px solid var(--color-border);
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      color: var(--color-text-muted);
+      transition: all 0.15s;
+      font-family: var(--font-base);
+      white-space: nowrap;
+    }
+
+    .tag-chip:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    .tag-chip.selected {
+      background: var(--color-primary-bg);
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    .tag-chip--delete {
+      background: var(--color-loss-bg);
+      border-color: var(--color-loss-bg);
+      color: var(--color-loss);
+    }
+
+    .tag-chip--delete:hover {
+      background: var(--color-loss);
+      border-color: var(--color-loss);
+      color: #ffffff;
+    }
+
+    .tag-add-row {
+      display: flex;
+      gap: var(--spacing-xs);
+      align-items: center;
+    }
+
+    .tag-add-input {
+      flex: 1;
+      padding: 6px 12px;
+      border: 1.5px solid var(--color-border);
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-family: var(--font-base);
+      outline: none;
+      transition: border-color 0.15s;
+      min-width: 0;
+    }
+
+    .tag-add-input:focus { border-color: var(--color-primary); }
+
+    .btn-tag-add {
+      padding: 6px 14px;
+      background: var(--color-primary-bg);
+      color: var(--color-primary);
+      border: 1.5px solid var(--color-primary);
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: var(--font-base);
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .btn-tag-add:hover {
+      background: var(--color-primary);
+      color: #ffffff;
+    }
+
+    /* =============================================================================
+       SUBMIT BUTTON
+    ============================================================================= */
+    .btn-submit {
+      width: 100%;
+      padding: 10px var(--spacing-md);
+      background: var(--color-primary);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      font-family: var(--font-base);
+    }
+
+    .btn-submit:hover  { background: var(--color-primary-hover); }
+    .btn-submit:active { transform: scale(0.99); }
+    .btn-submit.success { background: var(--color-success); }
+
+    /* =============================================================================
+       FILTER PILLS
+    ============================================================================= */
+    .filter-pills {
+      display: flex;
+      gap: var(--spacing-xs);
+      flex-wrap: wrap;
+    }
+
+    .pill-btn {
+      padding: 7px var(--spacing-md);
+      border: 1.5px solid var(--color-border);
+      border-radius: 20px;
+      background: transparent;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--color-text-muted);
+      font-family: var(--font-base);
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .pill-btn:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    .pill-btn.active {
+      background: var(--color-primary-bg);
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    /* Filter select row */
+    .filter-row {
+      display: flex;
+      gap: var(--spacing-sm);
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .filter-row > div { flex: 1; min-width: 130px; }
+
+    .custom-range-row {
+      display: flex;
+      gap: var(--spacing-sm);
+      align-items: center;
+    }
+
+    .custom-range-row .form-control { flex: 1; }
+
+    .custom-range-label {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      white-space: nowrap;
+      font-weight: 600;
+    }
+
+    /* =============================================================================
+       STATS CARDS
+    ============================================================================= */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: var(--spacing-sm);
+    }
+
+    .stats-grid--2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-sm);
+    }
+
+    .stat-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-md) var(--spacing-sm);
+      box-shadow: var(--shadow-sm);
+      text-align: center;
+    }
+
+    .stat-card__label {
+      font-size: 0.66rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 700;
+      color: var(--color-text-muted);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .stat-card__value {
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .stat-card__value--win     { color: var(--color-win); }
+    .stat-card__value--loss    { color: var(--color-loss); }
+    .stat-card__value--neutral { color: var(--color-text-muted); }
+
+    /* =============================================================================
+       SESSION LIST
+    ============================================================================= */
+    .session-list-inner {
+      padding: var(--spacing-md) var(--spacing-lg);
+    }
+
+    .session-empty {
+      text-align: center;
+      color: var(--color-text-muted);
+      padding: var(--spacing-xl) 0;
+      font-size: 0.95rem;
+    }
+
+    .session-item {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-sm);
+      background: var(--color-surface);
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+
+    .session-item:last-child  { margin-bottom: 0; }
+    .session-item:hover       { box-shadow: var(--shadow-md); border-color: #c8c8c8; }
+
+    .session-item__top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .session-item__title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .session-item__right {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      flex-shrink: 0;
+    }
+
+    .session-item__result {
+      font-weight: 700;
+      font-size: 0.95rem;
+      white-space: nowrap;
+    }
+
+    .session-item__result--win  { color: var(--color-win); }
+    .session-item__result--loss { color: var(--color-loss); }
+    .session-item__result--zero { color: var(--color-neutral); }
+
+    .session-item__meta {
+      font-size: 0.78rem;
+      color: var(--color-text-muted);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .session-item__details {
+      font-size: 0.78rem;
+      color: var(--color-text-muted);
+      line-height: 1.6;
+    }
+
+    .session-item__tags {
+      display: flex;
+      gap: var(--spacing-xs);
+      flex-wrap: wrap;
+      margin-top: var(--spacing-xs);
+    }
+
+    .session-tag {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+      background: var(--color-primary-bg);
+      color: var(--color-primary);
+      white-space: nowrap;
+    }
+
+    .btn-delete {
+      background: transparent;
+      border: none;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      font-size: 1.1rem;
+      width: 26px;
+      height: 26px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: color 0.15s, background 0.15s;
+      line-height: 1;
+    }
+
+    .btn-delete:hover {
+      color: var(--color-loss);
+      background: var(--color-loss-bg);
+    }
+
+    /* =============================================================================
+       PAGINATION
+    ============================================================================= */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--spacing-md);
+      padding: var(--spacing-md) var(--spacing-lg);
+      border-top: 1px solid var(--color-border);
+    }
+
+    .btn-page {
+      padding: 6px var(--spacing-md);
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--color-primary);
+      transition: background 0.15s, border-color 0.15s;
+      font-family: var(--font-base);
+    }
+
+    .btn-page:hover:not(:disabled) {
+      background: var(--color-primary-bg);
+      border-color: var(--color-primary);
+    }
+
+    .btn-page:disabled { color: var(--color-text-muted); cursor: not-allowed; opacity: 0.45; }
+
+    .pagination-label {
+      font-size: 0.82rem;
+      color: var(--color-text-muted);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    /* =============================================================================
+       TAG MANAGER
+    ============================================================================= */
+    .tag-manager-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-xs);
+      margin-bottom: var(--spacing-md);
+      min-height: 28px;
+    }
+
+    .tag-manager-empty {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+
+    /* =============================================================================
+       BOTTOM NAVIGATION
+    ============================================================================= */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+      display: flex;
+      z-index: 200;
+      box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .nav-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--color-text-muted);
+      font-family: var(--font-base);
+      transition: color 0.15s, background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      padding-top: var(--spacing-xs);
+      position: relative;
+    }
+
+    .nav-btn.active { color: var(--color-primary); }
+    .nav-btn:active { background: var(--color-primary-bg); }
+
+    .nav-btn.active::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      width: 32px;
+      height: 3px;
+      background: var(--color-primary);
+      border-radius: 0 0 3px 3px;
+    }
+
+    .nav-icon  { font-size: 1.5rem; line-height: 1; }
+    .nav-label { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; }
+
+    /* =============================================================================
+       RESPONSIVE
+    ============================================================================= */
+    @media (max-width: 768px) {
+      .app-header   { padding: var(--spacing-md); }
+      .app-title    { font-size: 1.15rem; margin-bottom: var(--spacing-sm); }
+      .view-content { margin-top: var(--spacing-md); padding: 0 var(--spacing-sm); gap: var(--spacing-sm); }
+      .panel__body  { padding: var(--spacing-md); }
+      .stats-grid   { grid-template-columns: 1fr 1fr; }
+      .summary-card__value { font-size: 1rem; }
+    }
+
+    @media (max-width: 500px) {
+      .financials-row { grid-template-columns: 1fr 1fr; }
+      .date-range     { gap: var(--spacing-xs); }
+    }
+
+    @media (max-width: 380px) {
+      .financials-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =====================================================================
+       HEADER — always visible, all-time unfiltered stats
+  ====================================================================== -->
+  <header class="app-header">
+    <div class="header-inner">
+      <h1 class="app-title">&#9824; Poker Tracker</h1>
+      <div class="summary-cards">
+        <div class="summary-card" id="hdr-pnl-card">
+          <div class="summary-card__label">Net P&amp;L</div>
+          <div class="summary-card__value" id="hdr-pnl">$0.00</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card__label">Sessions</div>
+          <div class="summary-card__value" id="hdr-sessions">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card__label">Win Rate</div>
+          <div class="summary-card__value" id="hdr-winrate">&#8212;</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- =====================================================================
+       VIEW: LOG SESSION
+  ====================================================================== -->
+  <div class="view active" id="view-add">
+    <div class="view-content">
+      <div class="panel">
+        <div class="panel__header">Log Session</div>
+        <div class="panel__body">
+          <form id="session-form" novalidate>
+
+            <!-- Date Range -->
+            <div class="form-group">
+              <label class="form-label">Session Date</label>
+              <div class="date-range">
+                <input type="date" id="input-start-date" class="form-control" required>
+                <span class="date-range-sep">&#8594;</span>
+                <input type="date" id="input-end-date" class="form-control" required>
+              </div>
+              <span class="form-error" id="error-dates">End date must be on or after start date</span>
+            </div>
+
+            <!-- Financials -->
+            <div class="form-group">
+              <label class="form-label">Financials</label>
+              <div class="financials-row">
+                <div class="form-group">
+                  <label class="form-label" for="input-buyin">Buy-In ($)</label>
+                  <input type="number" id="input-buyin" class="form-control" min="0.01" step="0.01" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="input-totalin">Total In ($)</label>
+                  <input type="number" id="input-totalin" class="form-control" min="0.01" step="0.01" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="input-cashout">Cash Out ($)</label>
+                  <input type="number" id="input-cashout" class="form-control" min="0" step="0.01" placeholder="0.00" required>
+                </div>
+              </div>
+              <span class="form-error" id="error-financials">Check amounts: Buy-In &gt; 0, Total In &#8805; Buy-In, Cash Out &#8805; 0</span>
+            </div>
+
+            <!-- Live preview -->
+            <div class="session-preview">
+              <div class="preview-item">
+                <div class="preview-label">Rebuy</div>
+                <div class="preview-value" id="preview-rebuy">$0.00</div>
+              </div>
+              <div class="preview-item">
+                <div class="preview-label">Result</div>
+                <div class="preview-value" id="preview-result">&#8212;</div>
+              </div>
+            </div>
+
+            <!-- Title -->
+            <div class="form-group">
+              <label class="form-label" for="input-title">
+                Title <span class="form-label-inline">(optional)</span>
+              </label>
+              <input type="text" id="input-title" class="form-control" maxlength="60"
+                     placeholder="e.g. Friday night home game..." autocomplete="off">
+            </div>
+
+            <!-- Tags -->
+            <div class="form-group">
+              <label class="form-label">
+                Tags <span class="form-label-inline">(optional — click to select)</span>
+              </label>
+              <div class="tag-chips" id="form-tag-chips"></div>
+              <div class="tag-add-row">
+                <input type="text" id="new-tag-input" class="tag-add-input"
+                       placeholder="Create new tag..." maxlength="30" autocomplete="off">
+                <button type="button" class="btn-tag-add" id="btn-add-tag">+ Add</button>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-submit" id="btn-submit">Save Session</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       VIEW: STATS & HISTORY
+  ====================================================================== -->
+  <div class="view" id="view-stats">
+    <div class="view-content">
+
+      <!-- Filters -->
+      <div class="panel">
+        <div class="panel__header">Filters</div>
+        <div class="panel__body" style="display:flex;flex-direction:column;gap:var(--spacing-md);">
+
+          <!-- Time period pills -->
+          <div>
+            <div class="form-label" style="margin-bottom:var(--spacing-sm);">Time Period</div>
+            <div class="filter-pills" id="time-pills">
+              <button class="pill-btn active" data-period="all">All Time</button>
+              <button class="pill-btn" data-period="week">This Week</button>
+              <button class="pill-btn" data-period="month">This Month</button>
+              <button class="pill-btn" data-period="year">This Year</button>
+            </div>
+          </div>
+
+          <!-- Buy-in range + Tag dropdowns -->
+          <div class="filter-row">
+            <div>
+              <label class="form-label" for="filter-buyin">Buy-In Range</label>
+              <select id="filter-buyin" class="form-control">
+                <option value="all">All</option>
+                <option value="lt50">Under $50</option>
+                <option value="50-200">$50 &#8211; $200</option>
+                <option value="200-500">$200 &#8211; $500</option>
+                <option value="gt500">Over $500</option>
+                <option value="custom">Custom Range</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label" for="filter-tag">Tag</label>
+              <select id="filter-tag" class="form-control">
+                <option value="all">All</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Custom buy-in range (hidden until "Custom" selected) -->
+          <div class="custom-range-row" id="custom-buyin-row" style="display:none;">
+            <span class="custom-range-label">Min $</span>
+            <input type="number" id="custom-min" class="form-control" min="0" step="1" placeholder="0">
+            <span class="custom-range-label">Max $</span>
+            <input type="number" id="custom-max" class="form-control" min="0" step="1" placeholder="any">
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Stats cards (filtered) -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-card__label">Net P&amp;L</div>
+          <div class="stat-card__value" id="stat-pnl">$0.00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">Sessions</div>
+          <div class="stat-card__value stat-card__value--neutral" id="stat-sessions">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">Win Rate</div>
+          <div class="stat-card__value stat-card__value--neutral" id="stat-winrate">&#8212;</div>
+        </div>
+      </div>
+      <div class="stats-grid--2">
+        <div class="stat-card">
+          <div class="stat-card__label">Biggest Win</div>
+          <div class="stat-card__value stat-card__value--win" id="stat-bigwin">&#8212;</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">Biggest Loss</div>
+          <div class="stat-card__value stat-card__value--loss" id="stat-bigloss">&#8212;</div>
+        </div>
+      </div>
+
+      <!-- Session list -->
+      <div class="panel">
+        <div class="panel__header">Session History</div>
+        <div class="session-list-inner" id="session-list">
+          <div class="session-empty">No sessions logged yet. Add one above.</div>
+        </div>
+        <div class="pagination" id="pagination" style="display:none;">
+          <button class="btn-page" id="btn-prev">&#8592; Prev</button>
+          <span class="pagination-label" id="page-label">Page 1 of 1</span>
+          <button class="btn-page" id="btn-next">Next &#8594;</button>
+        </div>
+      </div>
+
+      <!-- Tag manager -->
+      <div class="panel">
+        <div class="panel__header">Manage Tags</div>
+        <div class="panel__body">
+          <div class="tag-manager-chips" id="tag-manager-chips">
+            <span class="tag-manager-empty">No tags yet.</span>
+          </div>
+          <div class="tag-add-row">
+            <input type="text" id="manager-tag-input" class="tag-add-input"
+                   placeholder="New tag name..." maxlength="30" autocomplete="off">
+            <button type="button" class="btn-tag-add" id="btn-manager-add-tag">+ Add</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       BOTTOM NAVIGATION
+  ====================================================================== -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" id="nav-btn-add" aria-label="Log Session">
+      <span class="nav-icon">&#43;</span>
+      <span class="nav-label">Log</span>
+    </button>
+    <button class="nav-btn" id="nav-btn-stats" aria-label="Stats and History">
+      <span class="nav-icon">&#9776;</span>
+      <span class="nav-label">Stats</span>
+    </button>
+    <button class="nav-btn" id="nav-btn-finance" aria-label="Finance Tracker">
+      <span class="nav-icon">$</span>
+      <span class="nav-label">Finance</span>
+    </button>
+  </nav>
+
+  <script>
+    'use strict';
+
+    // =============================================================================
+    // --- CONSTANTS ---
+    // =============================================================================
+    const POKER_KEY   = 'poker_sessions';
+    const TAGS_KEY    = 'poker_tags';
+    const FINANCE_KEY = 'finance_transactions';
+    const PAGE_SIZE   = 10;
+
+    // =============================================================================
+    // --- DOM ELEMENT CACHE ---
+    // =============================================================================
+
+    // Header
+    const hdrPnlEl      = document.getElementById('hdr-pnl');
+    const hdrPnlCard    = document.getElementById('hdr-pnl-card');
+    const hdrSessionsEl = document.getElementById('hdr-sessions');
+    const hdrWinrateEl  = document.getElementById('hdr-winrate');
+
+    // Views + nav
+    const viewAdd       = document.getElementById('view-add');
+    const viewStats     = document.getElementById('view-stats');
+    const navBtnAdd     = document.getElementById('nav-btn-add');
+    const navBtnStats   = document.getElementById('nav-btn-stats');
+    const navBtnFinance = document.getElementById('nav-btn-finance');
+
+    // Form
+    const sessionForm    = document.getElementById('session-form');
+    const inputStartDate = document.getElementById('input-start-date');
+    const inputEndDate   = document.getElementById('input-end-date');
+    const inputBuyin     = document.getElementById('input-buyin');
+    const inputTotalin   = document.getElementById('input-totalin');
+    const inputCashout   = document.getElementById('input-cashout');
+    const inputTitle     = document.getElementById('input-title');
+    const btnSubmit      = document.getElementById('btn-submit');
+    const formTagChips   = document.getElementById('form-tag-chips');
+    const newTagInput    = document.getElementById('new-tag-input');
+    const btnAddTag      = document.getElementById('btn-add-tag');
+
+    // Errors
+    const errorDates      = document.getElementById('error-dates');
+    const errorFinancials = document.getElementById('error-financials');
+
+    // Preview
+    const previewRebuy  = document.getElementById('preview-rebuy');
+    const previewResult = document.getElementById('preview-result');
+
+    // Filters
+    const timePills      = document.querySelectorAll('#time-pills .pill-btn');
+    const filterBuyin    = document.getElementById('filter-buyin');
+    const filterTag      = document.getElementById('filter-tag');
+    const customBuyinRow = document.getElementById('custom-buyin-row');
+    const customMin      = document.getElementById('custom-min');
+    const customMax      = document.getElementById('custom-max');
+
+    // Stats
+    const statPnl      = document.getElementById('stat-pnl');
+    const statSessions = document.getElementById('stat-sessions');
+    const statWinrate  = document.getElementById('stat-winrate');
+    const statBigwin   = document.getElementById('stat-bigwin');
+    const statBigloss  = document.getElementById('stat-bigloss');
+
+    // Session list + pagination
+    const sessionListEl = document.getElementById('session-list');
+    const paginationEl  = document.getElementById('pagination');
+    const btnPrev       = document.getElementById('btn-prev');
+    const btnNext       = document.getElementById('btn-next');
+    const pageLabelEl   = document.getElementById('page-label');
+
+    // Tag manager
+    const tagManagerChips  = document.getElementById('tag-manager-chips');
+    const managerTagInput  = document.getElementById('manager-tag-input');
+    const btnManagerAddTag = document.getElementById('btn-manager-add-tag');
+
+    // =============================================================================
+    // --- APP STATE ---
+    // =============================================================================
+    let sessions         = [];   // read once from localStorage on init
+    let tags             = [];   // read once from localStorage on init
+    let selectedFormTags = [];   // tags selected in the current form session
+    let currentPeriod    = 'all';
+    let currentPage      = 1;
+
+    // =============================================================================
+    // --- UTILITIES ---
+    // =============================================================================
+
+    function generateId() {
+      return `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Math.abs(amount));
+    }
+
+    function formatDateRange(startDate, endDate) {
+      const opts = { month: 'short', day: '2-digit', year: 'numeric' };
+      const [sy, sm, sd] = startDate.split('-').map(Number);
+      const startFmt = new Date(sy, sm - 1, sd).toLocaleDateString('en-US', opts);
+      if (startDate === endDate) return startFmt;
+      const [ey, em, ed] = endDate.split('-').map(Number);
+      const endFmt = new Date(ey, em - 1, ed).toLocaleDateString('en-US', opts);
+      return `${startFmt} \u2013 ${endFmt}`;
+    }
+
+    function getTodayStr() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.appendChild(document.createTextNode(String(str)));
+      return div.innerHTML;
+    }
+
+    function getWeekStart() {
+      const d = new Date();
+      d.setDate(d.getDate() - 6);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function getMonthStart() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+    }
+
+    function getYearStart() {
+      return `${new Date().getFullYear()}-01-01`;
+    }
+
+    // =============================================================================
+    // --- DATA LAYER ---
+    // =============================================================================
+
+    function loadSessions() {
+      const raw = localStorage.getItem(POKER_KEY);
+      if (!raw) { sessions = []; return; }
+      try {
+        const p = JSON.parse(raw);
+        sessions = Array.isArray(p) ? p : [];
+      } catch (_) { sessions = []; }
+    }
+
+    function saveSessions() {
+      localStorage.setItem(POKER_KEY, JSON.stringify(sessions));
+    }
+
+    function loadTags() {
+      const raw = localStorage.getItem(TAGS_KEY);
+      if (!raw) { tags = []; return; }
+      try {
+        const p = JSON.parse(raw);
+        tags = Array.isArray(p) ? p : [];
+      } catch (_) { tags = []; }
+    }
+
+    function saveTags() {
+      localStorage.setItem(TAGS_KEY, JSON.stringify(tags));
+    }
+
+    function addSession(session) {
+      sessions.push(session);
+      saveSessions();
+      syncToFinanceTracker(session);
+    }
+
+    function deleteSession(id) {
+      sessions = sessions.filter(s => s.id !== id);
+      saveSessions();
+      removeFromFinanceTracker(id);
+    }
+
+    // --- Finance Tracker sync — write-only, no reads beyond what's needed ---
+
+    function syncToFinanceTracker(session) {
+      if (session.result === 0) return; // break-even: no financial impact
+
+      let txns = [];
+      try {
+        const raw = localStorage.getItem(FINANCE_KEY);
+        txns = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(txns)) txns = [];
+      } catch (_) { txns = []; }
+
+      // Remove existing entry for this session (idempotent)
+      txns = txns.filter(t => t.id !== session.id);
+
+      txns.push({
+        id:          session.id,
+        type:        session.result > 0 ? 'income' : 'expense',
+        amount:      parseFloat(Math.abs(session.result).toFixed(2)),
+        category:    'Poker',
+        description: session.title || 'Poker Session',
+        date:        session.startDate,
+      });
+
+      localStorage.setItem(FINANCE_KEY, JSON.stringify(txns));
+    }
+
+    function removeFromFinanceTracker(id) {
+      let txns = [];
+      try {
+        const raw = localStorage.getItem(FINANCE_KEY);
+        txns = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(txns)) txns = [];
+      } catch (_) { txns = []; }
+      localStorage.setItem(FINANCE_KEY, JSON.stringify(txns.filter(t => t.id !== id)));
+    }
+
+    // =============================================================================
+    // --- FILTER LOGIC ---
+    // =============================================================================
+
+    function getFilteredSessions() {
+      const buyinVal = filterBuyin.value;
+      const tagVal   = filterTag.value;
+
+      let minDate = null;
+      if (currentPeriod === 'week')  minDate = getWeekStart();
+      if (currentPeriod === 'month') minDate = getMonthStart();
+      if (currentPeriod === 'year')  minDate = getYearStart();
+
+      return sessions.filter(s => {
+        // Time filter (based on session start date)
+        if (minDate && s.startDate < minDate) return false;
+
+        // Buy-in range filter
+        if (buyinVal !== 'all') {
+          const bi = s.buyIn;
+          if (buyinVal === 'lt50'    && !(bi < 50))               return false;
+          if (buyinVal === '50-200'  && !(bi >= 50 && bi <= 200)) return false;
+          if (buyinVal === '200-500' && !(bi > 200 && bi <= 500)) return false;
+          if (buyinVal === 'gt500'   && !(bi > 500))              return false;
+          if (buyinVal === 'custom') {
+            const mn = parseFloat(customMin.value);
+            const mx = parseFloat(customMax.value);
+            if (!isNaN(mn) && bi < mn) return false;
+            if (!isNaN(mx) && bi > mx) return false;
+          }
+        }
+
+        // Tag filter — untagged sessions are hidden when a specific tag is selected
+        if (tagVal !== 'all') {
+          if (!s.tags || !s.tags.includes(tagVal)) return false;
+        }
+
+        return true;
+      });
+    }
+
+    function sortByDateDesc(arr) {
+      return [...arr].sort((a, b) => b.startDate.localeCompare(a.startDate));
+    }
+
+    // =============================================================================
+    // --- STATS CALCULATION ---
+    // =============================================================================
+
+    function calculateStats(arr) {
+      const count   = arr.length;
+      const netPL   = arr.reduce((s, x) => s + x.result, 0);
+      const wins    = arr.filter(x => x.result > 0).length;
+      const winRate = count > 0 ? (wins / count * 100) : null;
+      const results = arr.map(x => x.result);
+      const bigWin  = results.length > 0 ? Math.max(...results) : null;
+      const bigLoss = results.length > 0 ? Math.min(...results) : null;
+      return { count, netPL, winRate, bigWin, bigLoss };
+    }
+
+    // =============================================================================
+    // --- RENDER LAYER ---
+    // =============================================================================
+
+    function renderHeader() {
+      const s = calculateStats(sessions);
+
+      hdrSessionsEl.textContent = s.count;
+      hdrWinrateEl.textContent  = s.winRate !== null ? `${s.winRate.toFixed(0)}%` : '\u2014';
+
+      hdrPnlCard.className = 'summary-card';
+      if (s.netPL > 0)      { hdrPnlEl.textContent = '+' + formatCurrency(s.netPL); hdrPnlCard.classList.add('summary-card--win'); }
+      else if (s.netPL < 0) { hdrPnlEl.textContent = '\u2212' + formatCurrency(s.netPL); hdrPnlCard.classList.add('summary-card--loss'); }
+      else                  { hdrPnlEl.textContent = formatCurrency(0); hdrPnlCard.classList.add('summary-card--zero'); }
+    }
+
+    function renderStatsCards() {
+      const filtered = getFilteredSessions();
+      const s        = calculateStats(filtered);
+
+      // Net P&L
+      statPnl.className = 'stat-card__value';
+      if (s.netPL > 0)      { statPnl.textContent = '+' + formatCurrency(s.netPL); statPnl.classList.add('stat-card__value--win'); }
+      else if (s.netPL < 0) { statPnl.textContent = '\u2212' + formatCurrency(s.netPL); statPnl.classList.add('stat-card__value--loss'); }
+      else                  { statPnl.textContent = formatCurrency(0); statPnl.classList.add('stat-card__value--neutral'); }
+
+      statSessions.textContent = s.count;
+      statWinrate.textContent  = s.winRate !== null ? `${s.winRate.toFixed(1)}%` : '\u2014';
+
+      if (s.bigWin !== null)  statBigwin.textContent  = s.bigWin > 0  ? '+' + formatCurrency(s.bigWin) : formatCurrency(s.bigWin);
+      else                    statBigwin.textContent  = '\u2014';
+
+      if (s.bigLoss !== null) statBigloss.textContent = s.bigLoss < 0 ? '\u2212' + formatCurrency(s.bigLoss) : formatCurrency(s.bigLoss);
+      else                    statBigloss.textContent = '\u2014';
+    }
+
+    function renderSessionList() {
+      const filtered   = sortByDateDesc(getFilteredSessions());
+      const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+      if (currentPage > totalPages) currentPage = totalPages;
+
+      const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+      sessionListEl.innerHTML = '';
+
+      if (filtered.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'session-empty';
+        empty.textContent = sessions.length === 0
+          ? 'No sessions logged yet. Log one above.'
+          : 'No sessions match the current filters.';
+        sessionListEl.appendChild(empty);
+        paginationEl.style.display = 'none';
+        return;
+      }
+
+      const frag = document.createDocumentFragment();
+      for (const s of pageItems) frag.appendChild(buildSessionItem(s));
+      sessionListEl.appendChild(frag);
+
+      if (totalPages > 1) {
+        paginationEl.style.display = 'flex';
+        pageLabelEl.textContent = `Page ${currentPage} of ${totalPages}`;
+        btnPrev.disabled = currentPage === 1;
+        btnNext.disabled = currentPage === totalPages;
+      } else {
+        paginationEl.style.display = 'none';
+      }
+    }
+
+    function buildSessionItem(s) {
+      const item = document.createElement('div');
+      item.className = 'session-item';
+      item.dataset.id = s.id;
+
+      const sign    = s.result > 0 ? '+' : s.result < 0 ? '\u2212' : '';
+      const rClass  = s.result > 0 ? 'session-item__result--win' : s.result < 0 ? 'session-item__result--loss' : 'session-item__result--zero';
+      const rebuy   = Math.max(0, s.totalIn - s.buyIn);
+      const tagsHtml = (s.tags || []).map(t => `<span class="session-tag">${escapeHtml(t)}</span>`).join('');
+
+      item.innerHTML = `
+        <div class="session-item__top">
+          <div class="session-item__title">${escapeHtml(s.title || 'Poker Session')}</div>
+          <div class="session-item__right">
+            <span class="session-item__result ${rClass}">${sign}${formatCurrency(s.result)}</span>
+            <button class="btn-delete" data-id="${escapeHtml(s.id)}" aria-label="Delete session">&#215;</button>
+          </div>
+        </div>
+        <div class="session-item__meta">${formatDateRange(s.startDate, s.endDate)}</div>
+        <div class="session-item__details">
+          Buy-In: ${formatCurrency(s.buyIn)}&nbsp;&nbsp;|&nbsp;&nbsp;Rebuy: ${formatCurrency(rebuy)}&nbsp;&nbsp;|&nbsp;&nbsp;Total In: ${formatCurrency(s.totalIn)}&nbsp;&nbsp;|&nbsp;&nbsp;Cash Out: ${formatCurrency(s.cashOut)}
+        </div>
+        ${tagsHtml ? `<div class="session-item__tags">${tagsHtml}</div>` : ''}
+      `;
+
+      return item;
+    }
+
+    function renderFormTagChips() {
+      formTagChips.innerHTML = '';
+      if (tags.length === 0) {
+        const note = document.createElement('span');
+        note.style.cssText = 'font-size:0.82rem;color:var(--color-text-muted);font-style:italic;';
+        note.textContent = 'No tags yet — create one below.';
+        formTagChips.appendChild(note);
+        return;
+      }
+      for (const tag of tags) {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'tag-chip' + (selectedFormTags.includes(tag) ? ' selected' : '');
+        chip.textContent = tag;
+        chip.dataset.tag = tag;
+        formTagChips.appendChild(chip);
+      }
+    }
+
+    function renderTagFilterOptions() {
+      const prev = filterTag.value;
+      filterTag.innerHTML = '<option value="all">All</option>';
+      for (const tag of tags) {
+        const opt = document.createElement('option');
+        opt.value = tag;
+        opt.textContent = tag;
+        if (tag === prev) opt.selected = true;
+        filterTag.appendChild(opt);
+      }
+    }
+
+    function renderTagManager() {
+      tagManagerChips.innerHTML = '';
+      if (tags.length === 0) {
+        const note = document.createElement('span');
+        note.className = 'tag-manager-empty';
+        note.textContent = 'No tags yet.';
+        tagManagerChips.appendChild(note);
+        return;
+      }
+      for (const tag of tags) {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'tag-chip tag-chip--delete';
+        chip.innerHTML = `${escapeHtml(tag)} &#215;`;
+        chip.dataset.tag = tag;
+        tagManagerChips.appendChild(chip);
+      }
+    }
+
+    function renderAll() {
+      renderHeader();
+      renderStatsCards();
+      renderSessionList();
+      renderFormTagChips();
+      renderTagFilterOptions();
+      renderTagManager();
+    }
+
+    // =============================================================================
+    // --- LIVE PREVIEW ---
+    // =============================================================================
+
+    function updatePreview() {
+      const buyin   = parseFloat(inputBuyin.value)   || 0;
+      const totalin = parseFloat(inputTotalin.value)  || 0;
+      const cashout = parseFloat(inputCashout.value);
+      const hasCashout = inputCashout.value !== '' && !isNaN(cashout);
+
+      const rebuy  = Math.max(0, totalin - buyin);
+      const result = hasCashout ? (cashout - totalin) : null;
+
+      previewRebuy.textContent = formatCurrency(rebuy);
+      previewRebuy.className   = 'preview-value';
+
+      if (result === null) {
+        previewResult.textContent = '\u2014';
+        previewResult.className   = 'preview-value';
+      } else if (result > 0) {
+        previewResult.textContent = '+' + formatCurrency(result);
+        previewResult.className   = 'preview-value preview-value--win';
+      } else if (result < 0) {
+        previewResult.textContent = '\u2212' + formatCurrency(result);
+        previewResult.className   = 'preview-value preview-value--loss';
+      } else {
+        previewResult.textContent = formatCurrency(0);
+        previewResult.className   = 'preview-value';
+      }
+    }
+
+    // =============================================================================
+    // --- TAG LOGIC ---
+    // =============================================================================
+
+    function addTag(name) {
+      const cleaned = name.trim();
+      if (!cleaned || tags.includes(cleaned)) return false;
+      tags.push(cleaned);
+      saveTags();
+      return true;
+    }
+
+    function deleteTag(name) {
+      tags = tags.filter(t => t !== name);
+      // Remove tag from all sessions
+      for (const s of sessions) {
+        s.tags = (s.tags || []).filter(t => t !== name);
+      }
+      selectedFormTags = selectedFormTags.filter(t => t !== name);
+      saveTags();
+      saveSessions();
+    }
+
+    // =============================================================================
+    // --- FORM LOGIC ---
+    // =============================================================================
+
+    function clearErrors() {
+      errorDates.classList.remove('visible');
+      errorFinancials.classList.remove('visible');
+      [inputStartDate, inputEndDate, inputBuyin, inputTotalin, inputCashout]
+        .forEach(el => el.classList.remove('error'));
+    }
+
+    function validateForm() {
+      clearErrors();
+      let valid = true;
+
+      const start   = inputStartDate.value;
+      const end     = inputEndDate.value;
+      const buyin   = parseFloat(inputBuyin.value);
+      const totalin = parseFloat(inputTotalin.value);
+      const cashout = parseFloat(inputCashout.value);
+
+      if (!start || !end || end < start) {
+        errorDates.classList.add('visible');
+        inputStartDate.classList.add('error');
+        inputEndDate.classList.add('error');
+        valid = false;
+      }
+
+      const buyinOk   = inputBuyin.value   && !isNaN(buyin)   && buyin > 0;
+      const totalinOk = inputTotalin.value && !isNaN(totalin) && totalin >= buyin;
+      const cashoutOk = inputCashout.value !== '' && !isNaN(cashout) && cashout >= 0;
+
+      if (!buyinOk || !totalinOk || !cashoutOk) {
+        errorFinancials.classList.add('visible');
+        if (!buyinOk)   inputBuyin.classList.add('error');
+        if (!totalinOk) inputTotalin.classList.add('error');
+        if (!cashoutOk) inputCashout.classList.add('error');
+        valid = false;
+      }
+
+      return valid;
+    }
+
+    function resetForm() {
+      const today          = getTodayStr();
+      inputStartDate.value = today;
+      inputEndDate.value   = today;
+      inputBuyin.value     = '';
+      inputTotalin.value   = '';
+      inputCashout.value   = '';
+      inputTitle.value     = '';
+      selectedFormTags     = [];
+      clearErrors();
+      updatePreview();
+      renderFormTagChips();
+    }
+
+    function showSubmitSuccess() {
+      btnSubmit.textContent = 'Saved!';
+      btnSubmit.classList.add('success');
+      setTimeout(() => {
+        btnSubmit.textContent = 'Save Session';
+        btnSubmit.classList.remove('success');
+      }, 1500);
+    }
+
+    // =============================================================================
+    // --- VIEW SWITCHING ---
+    // =============================================================================
+
+    function switchView(view) {
+      if (view === 'add') {
+        viewAdd.classList.add('active');
+        viewStats.classList.remove('active');
+        navBtnAdd.classList.add('active');
+        navBtnStats.classList.remove('active');
+      } else {
+        viewStats.classList.add('active');
+        viewAdd.classList.remove('active');
+        navBtnStats.classList.add('active');
+        navBtnAdd.classList.remove('active');
+        renderStatsCards();
+        renderSessionList();
+      }
+    }
+
+    // =============================================================================
+    // --- EVENT LISTENERS ---
+    // =============================================================================
+
+    // Navigation
+    navBtnAdd.addEventListener('click',     () => switchView('add'));
+    navBtnStats.addEventListener('click',   () => switchView('stats'));
+    navBtnFinance.addEventListener('click', () => { window.location.href = 'index.html'; });
+
+    // Date range: auto-sync end if it falls before start
+    inputStartDate.addEventListener('change', () => {
+      if (inputEndDate.value < inputStartDate.value) inputEndDate.value = inputStartDate.value;
+      inputStartDate.classList.remove('error');
+      inputEndDate.classList.remove('error');
+      errorDates.classList.remove('visible');
+    });
+    inputEndDate.addEventListener('change', () => {
+      inputStartDate.classList.remove('error');
+      inputEndDate.classList.remove('error');
+      errorDates.classList.remove('visible');
+    });
+
+    // Live preview
+    inputBuyin.addEventListener('input',   updatePreview);
+    inputTotalin.addEventListener('input', updatePreview);
+    inputCashout.addEventListener('input', updatePreview);
+
+    // Clear financial errors on input
+    [inputBuyin, inputTotalin, inputCashout].forEach(el => {
+      el.addEventListener('input', () => {
+        el.classList.remove('error');
+        errorFinancials.classList.remove('visible');
+      });
+    });
+
+    // Tag chip toggle in form
+    formTagChips.addEventListener('click', e => {
+      const chip = e.target.closest('.tag-chip');
+      if (!chip || chip.classList.contains('tag-chip--delete')) return;
+      const tag = chip.dataset.tag;
+      if (selectedFormTags.includes(tag)) {
+        selectedFormTags = selectedFormTags.filter(t => t !== tag);
+        chip.classList.remove('selected');
+      } else {
+        selectedFormTags.push(tag);
+        chip.classList.add('selected');
+      }
+    });
+
+    // Add tag from form
+    function handleAddTagForm() {
+      const name = newTagInput.value.trim();
+      if (!name) return;
+      if (addTag(name)) {
+        selectedFormTags.push(name);
+        newTagInput.value = '';
+        renderFormTagChips();
+        renderTagFilterOptions();
+        renderTagManager();
+      }
+    }
+    btnAddTag.addEventListener('click', handleAddTagForm);
+    newTagInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); handleAddTagForm(); } });
+
+    // Add tag from manager
+    function handleAddTagManager() {
+      const name = managerTagInput.value.trim();
+      if (!name) return;
+      if (addTag(name)) {
+        managerTagInput.value = '';
+        renderFormTagChips();
+        renderTagFilterOptions();
+        renderTagManager();
+      }
+    }
+    btnManagerAddTag.addEventListener('click', handleAddTagManager);
+    managerTagInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); handleAddTagManager(); } });
+
+    // Delete tag from manager
+    tagManagerChips.addEventListener('click', e => {
+      const chip = e.target.closest('.tag-chip--delete');
+      if (!chip) return;
+      deleteTag(chip.dataset.tag);
+      renderAll();
+    });
+
+    // Form submit
+    sessionForm.addEventListener('submit', e => {
+      e.preventDefault();
+      if (!validateForm()) return;
+
+      const buyin   = parseFloat(parseFloat(inputBuyin.value).toFixed(2));
+      const totalin = parseFloat(parseFloat(inputTotalin.value).toFixed(2));
+      const cashout = parseFloat(parseFloat(inputCashout.value).toFixed(2));
+
+      const session = {
+        id:        generateId(),
+        startDate: inputStartDate.value,
+        endDate:   inputEndDate.value,
+        buyIn:     buyin,
+        totalIn:   totalin,
+        cashOut:   cashout,
+        rebuy:     parseFloat((totalin - buyin).toFixed(2)),
+        result:    parseFloat((cashout - totalin).toFixed(2)),
+        title:     inputTitle.value.trim(),
+        tags:      [...selectedFormTags],
+      };
+
+      addSession(session);
+      resetForm();
+      showSubmitSuccess();
+      renderAll();
+    });
+
+    // Delete session — event delegation
+    sessionListEl.addEventListener('click', e => {
+      const btn = e.target.closest('.btn-delete');
+      if (!btn) return;
+      deleteSession(btn.dataset.id);
+      renderAll();
+    });
+
+    // Time period pills
+    timePills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        timePills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        currentPeriod = pill.dataset.period;
+        currentPage   = 1;
+        renderStatsCards();
+        renderSessionList();
+      });
+    });
+
+    // Buy-in range
+    filterBuyin.addEventListener('change', () => {
+      customBuyinRow.style.display = filterBuyin.value === 'custom' ? 'flex' : 'none';
+      currentPage = 1;
+      renderStatsCards();
+      renderSessionList();
+    });
+    customMin.addEventListener('input', () => { currentPage = 1; renderStatsCards(); renderSessionList(); });
+    customMax.addEventListener('input', () => { currentPage = 1; renderStatsCards(); renderSessionList(); });
+
+    // Tag filter
+    filterTag.addEventListener('change', () => { currentPage = 1; renderStatsCards(); renderSessionList(); });
+
+    // Pagination
+    btnPrev.addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderSessionList(); } });
+    btnNext.addEventListener('click', () => {
+      const total = Math.ceil(getFilteredSessions().length / PAGE_SIZE);
+      if (currentPage < total) { currentPage++; renderSessionList(); }
+    });
+
+    // =============================================================================
+    // --- INITIALIZATION ---
+    // =============================================================================
+
+    function init() {
+      loadSessions();
+      loadTags();
+      const today          = getTodayStr();
+      inputStartDate.value = today;
+      inputEndDate.value   = today;
+      renderAll();
+    }
+
+    init();
+
+    // Service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>

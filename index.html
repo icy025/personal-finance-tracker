@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Personal Finance Tracker</title>
 
   <!-- PWA -->
@@ -14,6 +14,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Finance">
   <link rel="apple-touch-icon" href="icon.svg">
+
   <style>
     /* =============================================================================
        CSS CUSTOM PROPERTIES
@@ -57,6 +58,8 @@
       --spacing-xl: 32px;
 
       --font-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+
+      --nav-height: 64px;
     }
 
     /* =============================================================================
@@ -74,10 +77,12 @@
       color: var(--color-text);
       line-height: 1.5;
       min-height: 100vh;
+      /* leave room for fixed bottom nav + iOS home indicator */
+      padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
     }
 
     /* =============================================================================
-       HEADER
+       HEADER — always visible
     ============================================================================= */
     .app-header {
       background: var(--color-surface);
@@ -90,7 +95,7 @@
     }
 
     .header-inner {
-      max-width: 1200px;
+      max-width: 680px;
       margin: 0 auto;
     }
 
@@ -110,46 +115,53 @@
 
     .summary-card {
       flex: 1;
-      min-width: 150px;
+      min-width: 130px;
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-md);
-      padding: var(--spacing-md) var(--spacing-lg);
+      padding: var(--spacing-sm) var(--spacing-md);
       box-shadow: var(--shadow-sm);
     }
 
     .summary-card__label {
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       text-transform: uppercase;
       letter-spacing: 0.6px;
       font-weight: 600;
       color: var(--color-text-muted);
-      margin-bottom: var(--spacing-xs);
+      margin-bottom: 2px;
     }
 
     .summary-card__value {
-      font-size: 1.6rem;
+      font-size: 1.25rem;
       font-weight: 700;
       letter-spacing: -0.5px;
     }
 
-    .summary-card--income .summary-card__value       { color: var(--color-income); }
-    .summary-card--expense .summary-card__value      { color: var(--color-expense); }
+    .summary-card--income .summary-card__value           { color: var(--color-income); }
+    .summary-card--expense .summary-card__value          { color: var(--color-expense); }
     .summary-card--balance-positive .summary-card__value { color: var(--color-income); }
     .summary-card--balance-negative .summary-card__value { color: var(--color-expense); }
-    .summary-card--balance-zero .summary-card__value { color: var(--color-neutral); }
+    .summary-card--balance-zero .summary-card__value     { color: var(--color-neutral); }
 
     /* =============================================================================
-       MAIN LAYOUT
+       VIEWS — show/hide
     ============================================================================= */
-    .app-main {
-      max-width: 1200px;
-      margin: var(--spacing-xl) auto;
-      padding: 0 var(--spacing-xl);
-      display: grid;
-      grid-template-columns: 360px 1fr;
-      gap: var(--spacing-xl);
-      align-items: start;
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .view-content {
+      max-width: 680px;
+      margin: var(--spacing-lg) auto;
+      padding: 0 var(--spacing-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-md);
     }
 
     /* =============================================================================
@@ -276,17 +288,9 @@
       letter-spacing: 0.2px;
     }
 
-    .btn-submit:hover {
-      background: var(--color-primary-hover);
-    }
-
-    .btn-submit:active {
-      transform: scale(0.99);
-    }
-
-    .btn-submit.success {
-      background: var(--color-success);
-    }
+    .btn-submit:hover  { background: var(--color-primary-hover); }
+    .btn-submit:active { transform: scale(0.99); }
+    .btn-submit.success { background: var(--color-success); }
 
     /* =============================================================================
        FILTER BAR
@@ -301,26 +305,16 @@
       background: #fafafa;
     }
 
-    .filter-search {
-      min-width: 160px;
-      flex: 2;
-    }
-
-    .filter-select-type {
-      min-width: 110px;
-      flex: 1;
-    }
-
-    .filter-select-cat {
-      min-width: 140px;
-      flex: 1;
-    }
+    .filter-search        { min-width: 160px; flex: 2; }
+    .filter-select-type   { min-width: 110px; flex: 1; }
+    .filter-select-cat    { min-width: 140px; flex: 1; }
 
     .filter-date-group {
       display: flex;
       gap: var(--spacing-xs);
       align-items: center;
       flex-wrap: wrap;
+      width: 100%;
     }
 
     .filter-date-label {
@@ -331,8 +325,8 @@
     }
 
     .filter-date-input {
-      min-width: 130px;
       flex: 1;
+      min-width: 0;
     }
 
     .btn-clear {
@@ -382,9 +376,7 @@
       background: var(--color-surface);
     }
 
-    .transaction-item:last-child {
-      margin-bottom: 0;
-    }
+    .transaction-item:last-child { margin-bottom: 0; }
 
     .transaction-item:hover {
       box-shadow: var(--shadow-md);
@@ -506,17 +498,43 @@
     }
 
     /* =============================================================================
-       CATEGORY SUMMARY SECTION
+       HISTORY TOOLBAR (count + export)
     ============================================================================= */
-    .category-summary {
-      max-width: 1200px;
-      margin: 0 auto var(--spacing-xl);
-      padding: 0 var(--spacing-xl);
+    .history-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--spacing-md);
     }
 
+    .footer-count {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+      font-weight: 500;
+    }
+
+    .btn-export {
+      padding: 8px var(--spacing-lg);
+      background: var(--color-primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-family: var(--font-base);
+      letter-spacing: 0.2px;
+    }
+
+    .btn-export:hover { background: var(--color-primary-hover); }
+
+    /* =============================================================================
+       CATEGORY SUMMARY
+    ============================================================================= */
     .chart-container {
       position: relative;
-      height: 280px;
+      height: 260px;
       margin-bottom: var(--spacing-lg);
     }
 
@@ -550,13 +568,8 @@
       vertical-align: middle;
     }
 
-    .category-table tr:last-child td {
-      border-bottom: none;
-    }
-
-    .category-table tr:hover td {
-      background: #fafafa;
-    }
+    .category-table tr:last-child td { border-bottom: none; }
+    .category-table tr:hover td      { background: #fafafa; }
 
     .progress-cell {
       display: flex;
@@ -591,46 +604,98 @@
     }
 
     /* =============================================================================
-       FOOTER
+       BOTTOM NAVIGATION
     ============================================================================= */
-    .app-footer {
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
       background: var(--color-surface);
       border-top: 1px solid var(--color-border);
-      padding: var(--spacing-md) var(--spacing-xl);
-    }
-
-    .footer-inner {
-      max-width: 1200px;
-      margin: 0 auto;
       display: flex;
+      z-index: 200;
+      box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+      /* iOS safe-area padding */
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .nav-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: var(--spacing-md);
-    }
-
-    .footer-count {
-      font-size: 0.85rem;
-      color: var(--color-text-muted);
-      font-weight: 500;
-    }
-
-    .btn-export {
-      padding: 8px var(--spacing-lg);
-      background: var(--color-primary);
-      color: white;
+      justify-content: center;
+      gap: 3px;
+      background: transparent;
       border: none;
-      border-radius: var(--radius-sm);
-      font-size: 0.85rem;
-      font-weight: 600;
       cursor: pointer;
-      transition: background 0.2s;
+      color: var(--color-text-muted);
       font-family: var(--font-base);
-      letter-spacing: 0.2px;
+      transition: color 0.15s, background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      padding-top: var(--spacing-xs);
     }
 
-    .btn-export:hover {
-      background: var(--color-primary-hover);
+    .nav-btn.active {
+      color: var(--color-primary);
+    }
+
+    .nav-btn:active {
+      background: var(--color-primary-bg);
+    }
+
+    .nav-icon {
+      font-size: 1.5rem;
+      line-height: 1;
+    }
+
+    .nav-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+
+    .nav-btn.active .nav-label {
+      color: var(--color-primary);
+    }
+
+    /* Active indicator dot above icon */
+    .nav-btn.active::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      width: 32px;
+      height: 3px;
+      background: var(--color-primary);
+      border-radius: 0 0 3px 3px;
+    }
+
+    .nav-btn { position: relative; }
+
+    /* =============================================================================
+       RESPONSIVE — TABLET / DESKTOP
+    ============================================================================= */
+    @media (min-width: 769px) {
+      .app-header {
+        padding: var(--spacing-md) var(--spacing-xl);
+      }
+
+      .header-inner {
+        max-width: 780px;
+      }
+
+      .view-content {
+        max-width: 780px;
+        margin-top: var(--spacing-xl);
+        padding: 0 var(--spacing-xl);
+        gap: var(--spacing-lg);
+      }
+
+      /* On wide screens the bottom nav can be a bit taller */
+      .nav-label { font-size: 0.75rem; }
     }
 
     /* =============================================================================
@@ -639,56 +704,30 @@
     @media (max-width: 768px) {
       .app-header {
         padding: var(--spacing-md);
-        position: static;
+        position: sticky;
       }
 
       .app-title {
-        font-size: 1.2rem;
+        font-size: 1.15rem;
         margin-bottom: var(--spacing-sm);
       }
 
       .summary-cards {
-        flex-direction: column;
         gap: var(--spacing-sm);
       }
 
       .summary-card {
         min-width: 0;
-        padding: var(--spacing-md);
       }
 
       .summary-card__value {
-        font-size: 1.3rem;
+        font-size: 1.1rem;
       }
 
-      .app-main {
-        grid-template-columns: 1fr;
-        padding: 0 var(--spacing-md);
+      .view-content {
         margin-top: var(--spacing-md);
-        gap: var(--spacing-md);
-      }
-
-      .category-summary {
-        padding: 0 var(--spacing-md);
-        margin-bottom: var(--spacing-md);
-      }
-
-      .app-footer {
-        padding: var(--spacing-md);
-      }
-
-      .filter-bar {
-        padding: var(--spacing-sm);
-        gap: var(--spacing-xs);
-      }
-
-      .filter-date-group {
-        width: 100%;
-      }
-
-      .filter-date-input {
-        flex: 1;
-        min-width: 0;
+        padding: 0 var(--spacing-sm);
+        gap: var(--spacing-sm);
       }
 
       .chart-container {
@@ -697,6 +736,15 @@
 
       .panel__body {
         padding: var(--spacing-md);
+      }
+
+      .filter-bar {
+        padding: var(--spacing-sm);
+        gap: var(--spacing-xs);
+      }
+
+      .history-toolbar {
+        padding: 0 var(--spacing-xs);
       }
     }
 
@@ -715,22 +763,22 @@
 <body>
 
   <!-- =====================================================================
-       HEADER
+       HEADER — always visible, contains summary cards
   ====================================================================== -->
   <header class="app-header">
     <div class="header-inner">
       <h1 class="app-title">Personal Finance Tracker</h1>
       <div class="summary-cards">
         <div class="summary-card summary-card--income">
-          <div class="summary-card__label">Total Income</div>
+          <div class="summary-card__label">Income</div>
           <div class="summary-card__value" id="summary-income">$0.00</div>
         </div>
         <div class="summary-card summary-card--expense">
-          <div class="summary-card__label">Total Expenses</div>
+          <div class="summary-card__label">Expenses</div>
           <div class="summary-card__value" id="summary-expense">$0.00</div>
         </div>
         <div class="summary-card" id="summary-balance-card">
-          <div class="summary-card__label">Net Balance</div>
+          <div class="summary-card__label">Balance</div>
           <div class="summary-card__value" id="summary-balance">$0.00</div>
         </div>
       </div>
@@ -738,143 +786,162 @@
   </header>
 
   <!-- =====================================================================
-       MAIN PANEL
+       VIEW: ADD TRANSACTION
   ====================================================================== -->
-  <main class="app-main">
+  <div class="view active" id="view-add">
+    <div class="view-content">
+      <div class="panel" id="form-panel">
+        <div class="panel__header">Add Transaction</div>
+        <div class="panel__body">
+          <form id="transaction-form" novalidate>
 
-    <!-- Left Column: Add Transaction Form -->
-    <div class="panel" id="form-panel">
-      <div class="panel__header">Add Transaction</div>
-      <div class="panel__body">
-        <form id="transaction-form" novalidate>
+            <!-- Type Toggle -->
+            <div class="type-toggle">
+              <button type="button" class="type-toggle__btn active--income" id="btn-type-income" data-type="income">
+                &#8593; Income
+              </button>
+              <button type="button" class="type-toggle__btn" id="btn-type-expense" data-type="expense">
+                &#8595; Expense
+              </button>
+            </div>
 
-          <!-- Type Toggle -->
-          <div class="type-toggle">
-            <button type="button" class="type-toggle__btn active--income" id="btn-type-income" data-type="income">
-              &#8593; Income
-            </button>
-            <button type="button" class="type-toggle__btn" id="btn-type-expense" data-type="expense">
-              &#8595; Expense
-            </button>
-          </div>
+            <!-- Amount -->
+            <div class="form-group">
+              <label class="form-label" for="input-amount">Amount ($)</label>
+              <input
+                type="number"
+                id="input-amount"
+                class="form-control"
+                min="0.01"
+                step="0.01"
+                placeholder="0.00"
+                required
+              >
+              <span class="form-error" id="error-amount">Please enter a valid amount (minimum $0.01)</span>
+            </div>
 
-          <!-- Amount -->
-          <div class="form-group">
-            <label class="form-label" for="input-amount">Amount ($)</label>
-            <input
-              type="number"
-              id="input-amount"
-              class="form-control"
-              min="0.01"
-              step="0.01"
-              placeholder="0.00"
-              required
-            >
-            <span class="form-error" id="error-amount">Please enter a valid amount (minimum $0.01)</span>
-          </div>
+            <!-- Category -->
+            <div class="form-group">
+              <label class="form-label" for="input-category">Category</label>
+              <select id="input-category" class="form-control" required></select>
+              <span class="form-error" id="error-category">Please select a category</span>
+            </div>
 
-          <!-- Category -->
-          <div class="form-group">
-            <label class="form-label" for="input-category">Category</label>
-            <select id="input-category" class="form-control" required></select>
-            <span class="form-error" id="error-category">Please select a category</span>
-          </div>
+            <!-- Description -->
+            <div class="form-group">
+              <label class="form-label" for="input-description">Description</label>
+              <input
+                type="text"
+                id="input-description"
+                class="form-control"
+                maxlength="60"
+                placeholder="Brief description..."
+                required
+                autocomplete="off"
+              >
+              <span class="form-error" id="error-description">Please enter a description</span>
+            </div>
 
-          <!-- Description -->
-          <div class="form-group">
-            <label class="form-label" for="input-description">Description</label>
-            <input
-              type="text"
-              id="input-description"
-              class="form-control"
-              maxlength="60"
-              placeholder="Brief description..."
-              required
-              autocomplete="off"
-            >
-            <span class="form-error" id="error-description">Please enter a description</span>
-          </div>
+            <!-- Date -->
+            <div class="form-group">
+              <label class="form-label" for="input-date">Date</label>
+              <input type="date" id="input-date" class="form-control" required>
+              <span class="form-error" id="error-date">Please select a date</span>
+            </div>
 
-          <!-- Date -->
-          <div class="form-group">
-            <label class="form-label" for="input-date">Date</label>
-            <input type="date" id="input-date" class="form-control" required>
-            <span class="form-error" id="error-date">Please select a date</span>
-          </div>
-
-          <button type="submit" class="btn-submit" id="btn-submit">Add Transaction</button>
-        </form>
-      </div>
-    </div>
-
-    <!-- Right Column: Filters + Transaction List -->
-    <div class="panel" id="list-panel">
-
-      <!-- Filter Bar -->
-      <div class="filter-bar">
-        <input
-          type="text"
-          id="filter-search"
-          class="form-control filter-search"
-          placeholder="Search descriptions..."
-          autocomplete="off"
-        >
-        <select id="filter-type" class="form-control filter-select-type">
-          <option value="all">All Types</option>
-          <option value="income">Income</option>
-          <option value="expense">Expense</option>
-        </select>
-        <select id="filter-category" class="form-control filter-select-cat">
-          <option value="all">All Categories</option>
-        </select>
-        <div class="filter-date-group">
-          <span class="filter-date-label">From</span>
-          <input type="date" id="filter-date-from" class="form-control filter-date-input">
-          <span class="filter-date-label">To</span>
-          <input type="date" id="filter-date-to" class="form-control filter-date-input">
+            <button type="submit" class="btn-submit" id="btn-submit">Add Transaction</button>
+          </form>
         </div>
-        <button type="button" class="btn-clear" id="btn-clear-filters">Clear Filters</button>
       </div>
-
-      <!-- Transaction List -->
-      <div class="transaction-list" id="transaction-list">
-        <div class="transaction-empty">No transactions yet. Add one above.</div>
-      </div>
-
-      <!-- Pagination -->
-      <div class="pagination" id="pagination" style="display: none;">
-        <button class="btn-page" id="btn-prev-page">&#8592; Prev</button>
-        <span class="pagination-label" id="pagination-label">Page 1 of 1</span>
-        <button class="btn-page" id="btn-next-page">Next &#8594;</button>
-      </div>
-
     </div>
-  </main>
+  </div>
 
   <!-- =====================================================================
-       CATEGORY SUMMARY
+       VIEW: HISTORY
   ====================================================================== -->
-  <section class="category-summary">
-    <div class="panel">
-      <div class="panel__header">Spending by Category</div>
-      <div class="panel__body">
-        <div class="chart-container">
-          <canvas id="spending-chart"></canvas>
+  <div class="view" id="view-history">
+    <div class="view-content">
+
+      <!-- List Panel -->
+      <div class="panel" id="list-panel">
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          <input
+            type="text"
+            id="filter-search"
+            class="form-control filter-search"
+            placeholder="Search descriptions..."
+            autocomplete="off"
+          >
+          <select id="filter-type" class="form-control filter-select-type">
+            <option value="all">All Types</option>
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+          </select>
+          <select id="filter-category" class="form-control filter-select-cat">
+            <option value="all">All Categories</option>
+          </select>
+          <div class="filter-date-group">
+            <span class="filter-date-label">From</span>
+            <input type="date" id="filter-date-from" class="form-control filter-date-input">
+            <span class="filter-date-label">To</span>
+            <input type="date" id="filter-date-to" class="form-control filter-date-input">
+          </div>
+          <button type="button" class="btn-clear" id="btn-clear-filters">Clear Filters</button>
         </div>
-        <div id="category-table-container"></div>
+
+        <!-- Transaction List -->
+        <div class="transaction-list" id="transaction-list">
+          <div class="transaction-empty">No transactions yet. Add one above.</div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="pagination" style="display: none;">
+          <button class="btn-page" id="btn-prev-page">&#8592; Prev</button>
+          <span class="pagination-label" id="pagination-label">Page 1 of 1</span>
+          <button class="btn-page" id="btn-next-page">Next &#8594;</button>
+        </div>
+
       </div>
+
+      <!-- Toolbar: count + export -->
+      <div class="history-toolbar">
+        <span class="footer-count" id="footer-count">0 transactions</span>
+        <button class="btn-export" id="btn-export-csv">&#8595; Export CSV</button>
+      </div>
+
+      <!-- Spending by Category -->
+      <div class="panel">
+        <div class="panel__header">Spending by Category</div>
+        <div class="panel__body">
+          <div class="chart-container">
+            <canvas id="spending-chart"></canvas>
+          </div>
+          <div id="category-table-container"></div>
+        </div>
+      </div>
+
     </div>
-  </section>
+  </div>
 
   <!-- =====================================================================
-       FOOTER
+       BOTTOM NAVIGATION
   ====================================================================== -->
-  <footer class="app-footer">
-    <div class="footer-inner">
-      <span class="footer-count" id="footer-count">0 transactions</span>
-      <button class="btn-export" id="btn-export-csv">&#8595; Export CSV</button>
-    </div>
-  </footer>
+  <nav class="bottom-nav">
+    <button class="nav-btn active" id="nav-btn-add" aria-label="Add Transaction">
+      <span class="nav-icon">&#43;</span>
+      <span class="nav-label">Add</span>
+    </button>
+    <button class="nav-btn" id="nav-btn-history" aria-label="Transaction History">
+      <span class="nav-icon">&#9776;</span>
+      <span class="nav-label">History</span>
+    </button>
+    <button class="nav-btn" id="nav-btn-poker" aria-label="Poker Tracker">
+      <span class="nav-icon">&#9824;</span>
+      <span class="nav-label">Poker</span>
+    </button>
+  </nav>
 
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -885,8 +952,8 @@
     // =============================================================================
     // --- CONSTANTS ---
     // =============================================================================
-    const INCOME_CATEGORIES  = ['Salary', 'Freelance', 'Investment', 'Gift', 'Other Income'];
-    const EXPENSE_CATEGORIES = ['Food', 'Transport', 'Housing', 'Entertainment', 'Healthcare', 'Shopping', 'Utilities', 'Other Expense'];
+    const INCOME_CATEGORIES  = ['Salary', 'Freelance', 'Investment', 'Gift', 'Poker', 'Other Income'];
+    const EXPENSE_CATEGORIES = ['Food', 'Transport', 'Housing', 'Entertainment', 'Healthcare', 'Shopping', 'Utilities', 'Poker', 'Other Expense'];
     const ALL_CATEGORIES     = [...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES];
     const STORAGE_KEY        = 'finance_transactions';
     const PAGE_SIZE          = 10;
@@ -896,56 +963,62 @@
     // =============================================================================
 
     // Header summary
-    const summaryIncomeEl     = document.getElementById('summary-income');
-    const summaryExpenseEl    = document.getElementById('summary-expense');
-    const summaryBalanceEl    = document.getElementById('summary-balance');
-    const summaryBalanceCard  = document.getElementById('summary-balance-card');
+    const summaryIncomeEl    = document.getElementById('summary-income');
+    const summaryExpenseEl   = document.getElementById('summary-expense');
+    const summaryBalanceEl   = document.getElementById('summary-balance');
+    const summaryBalanceCard = document.getElementById('summary-balance-card');
+
+    // Views + nav
+    const viewAdd        = document.getElementById('view-add');
+    const viewHistory    = document.getElementById('view-history');
+    const navBtnAdd      = document.getElementById('nav-btn-add');
+    const navBtnHistory  = document.getElementById('nav-btn-history');
 
     // Form
-    const transactionForm     = document.getElementById('transaction-form');
-    const btnTypeIncome       = document.getElementById('btn-type-income');
-    const btnTypeExpense      = document.getElementById('btn-type-expense');
-    const inputAmount         = document.getElementById('input-amount');
-    const inputCategory       = document.getElementById('input-category');
-    const inputDescription    = document.getElementById('input-description');
-    const inputDate           = document.getElementById('input-date');
-    const btnSubmit           = document.getElementById('btn-submit');
+    const transactionForm  = document.getElementById('transaction-form');
+    const btnTypeIncome    = document.getElementById('btn-type-income');
+    const btnTypeExpense   = document.getElementById('btn-type-expense');
+    const inputAmount      = document.getElementById('input-amount');
+    const inputCategory    = document.getElementById('input-category');
+    const inputDescription = document.getElementById('input-description');
+    const inputDate        = document.getElementById('input-date');
+    const btnSubmit        = document.getElementById('btn-submit');
 
     // Form errors
-    const errorAmount         = document.getElementById('error-amount');
-    const errorCategory       = document.getElementById('error-category');
-    const errorDescription    = document.getElementById('error-description');
-    const errorDate           = document.getElementById('error-date');
+    const errorAmount      = document.getElementById('error-amount');
+    const errorCategory    = document.getElementById('error-category');
+    const errorDescription = document.getElementById('error-description');
+    const errorDate        = document.getElementById('error-date');
 
     // Filters
-    const filterSearch        = document.getElementById('filter-search');
-    const filterType          = document.getElementById('filter-type');
-    const filterCategory      = document.getElementById('filter-category');
-    const filterDateFrom      = document.getElementById('filter-date-from');
-    const filterDateTo        = document.getElementById('filter-date-to');
-    const btnClearFilters     = document.getElementById('btn-clear-filters');
+    const filterSearch   = document.getElementById('filter-search');
+    const filterType     = document.getElementById('filter-type');
+    const filterCategory = document.getElementById('filter-category');
+    const filterDateFrom = document.getElementById('filter-date-from');
+    const filterDateTo   = document.getElementById('filter-date-to');
+    const btnClearFilters = document.getElementById('btn-clear-filters');
 
     // List + pagination
-    const transactionListEl   = document.getElementById('transaction-list');
-    const paginationEl        = document.getElementById('pagination');
-    const btnPrevPage         = document.getElementById('btn-prev-page');
-    const btnNextPage         = document.getElementById('btn-next-page');
-    const paginationLabelEl   = document.getElementById('pagination-label');
+    const transactionListEl = document.getElementById('transaction-list');
+    const paginationEl      = document.getElementById('pagination');
+    const btnPrevPage       = document.getElementById('btn-prev-page');
+    const btnNextPage       = document.getElementById('btn-next-page');
+    const paginationLabelEl = document.getElementById('pagination-label');
 
     // Category summary
     const categoryTableContainer = document.getElementById('category-table-container');
     const spendingChartCanvas    = document.getElementById('spending-chart');
 
-    // Footer
-    const footerCount         = document.getElementById('footer-count');
-    const btnExportCsv        = document.getElementById('btn-export-csv');
+    // Toolbar
+    const footerCount  = document.getElementById('footer-count');
+    const btnExportCsv = document.getElementById('btn-export-csv');
 
     // =============================================================================
     // --- APP STATE ---
     // =============================================================================
-    let transactions  = [];   // single source of truth — only populated once from localStorage
+    let transactions  = [];       // single source of truth — populated once from localStorage
     let currentPage   = 1;
-    let currentType   = 'income';  // active form type toggle
+    let currentType   = 'income'; // active form type toggle
     let spendingChart = null;
 
     // =============================================================================
@@ -1052,12 +1125,10 @@
 
       summaryIncomeEl.textContent  = formatCurrency(totalIncome);
       summaryExpenseEl.textContent = formatCurrency(totalExpense);
-      summaryBalanceEl.textContent = formatCurrency(Math.abs(balance));
 
-      // Prefix sign for balance
-      if (balance > 0)       summaryBalanceEl.textContent = '+' + formatCurrency(balance);
-      else if (balance < 0)  summaryBalanceEl.textContent = '-' + formatCurrency(Math.abs(balance));
-      else                   summaryBalanceEl.textContent = formatCurrency(0);
+      if      (balance > 0) summaryBalanceEl.textContent = '+' + formatCurrency(balance);
+      else if (balance < 0) summaryBalanceEl.textContent = '−' + formatCurrency(Math.abs(balance));
+      else                  summaryBalanceEl.textContent = formatCurrency(0);
 
       summaryBalanceCard.className = 'summary-card';
       if      (balance > 0) summaryBalanceCard.classList.add('summary-card--balance-positive');
@@ -1109,9 +1180,9 @@
       item.className = 'transaction-item';
       item.dataset.id = txn.id;
 
-      const prefix    = txn.type === 'income' ? '+' : '−';
-      const amtClass  = `transaction-amount--${txn.type}`;
-      const badgeCls  = `transaction-badge--${txn.type}`;
+      const prefix   = txn.type === 'income' ? '+' : '−';
+      const amtClass = `transaction-amount--${txn.type}`;
+      const badgeCls = `transaction-badge--${txn.type}`;
 
       item.innerHTML = `
         <div class="transaction-info">
@@ -1159,7 +1230,6 @@
     }
 
     function renderCategorySummary() {
-      // Build expense totals map (unfiltered)
       const totals = {};
       for (const t of transactions) {
         if (t.type !== 'expense') continue;
@@ -1168,7 +1238,6 @@
 
       const entries = Object.entries(totals).sort((a, b) => b[1] - a[1]);
 
-      // Destroy old chart if any
       if (spendingChart) {
         spendingChart.destroy();
         spendingChart = null;
@@ -1185,7 +1254,6 @@
       const labels = entries.map(e => e[0]);
       const values = entries.map(e => e[1]);
 
-      // Render horizontal bar chart
       if (typeof Chart !== 'undefined') {
         spendingChart = new Chart(spendingChartCanvas, {
           type: 'bar',
@@ -1206,19 +1274,15 @@
             maintainAspectRatio: false,
             plugins: {
               legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: ctx => '  ' + formatCurrency(ctx.raw)
-                }
-              }
+              tooltip: { callbacks: { label: ctx => '  ' + formatCurrency(ctx.raw) } }
             },
             scales: {
               x: {
-                ticks: { callback: val => formatCurrency(val), maxTicksLimit: 6 },
+                ticks: { callback: val => formatCurrency(val), maxTicksLimit: 5 },
                 grid:  { color: 'rgba(0,0,0,0.05)' }
               },
               y: {
-                grid: { display: false },
+                grid:  { display: false },
                 ticks: { font: { size: 12 } }
               }
             }
@@ -1226,17 +1290,10 @@
         });
       }
 
-      // Render summary table below the chart
       const totalExpenses = values.reduce((a, b) => a + b, 0);
       let html = `
         <table class="category-table">
-          <thead>
-            <tr>
-              <th>Category</th>
-              <th>Total Spent</th>
-              <th>Share</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Category</th><th>Total Spent</th><th>Share</th></tr></thead>
           <tbody>
       `;
 
@@ -1249,7 +1306,7 @@
             <td>
               <div class="progress-cell">
                 <div class="progress-bar-bg">
-                  <div class="progress-bar-fill" style="width: ${pct.toFixed(1)}%"></div>
+                  <div class="progress-bar-fill" style="width:${pct.toFixed(1)}%"></div>
                 </div>
                 <span class="progress-pct">${pct.toFixed(1)}%</span>
               </div>
@@ -1270,18 +1327,35 @@
     }
 
     // =============================================================================
+    // --- VIEW / NAV LOGIC ---
+    // =============================================================================
+
+    function switchView(view) {
+      if (view === 'add') {
+        viewAdd.classList.add('active');
+        viewHistory.classList.remove('active');
+        navBtnAdd.classList.add('active');
+        navBtnHistory.classList.remove('active');
+      } else {
+        viewHistory.classList.add('active');
+        viewAdd.classList.remove('active');
+        navBtnHistory.classList.add('active');
+        navBtnAdd.classList.remove('active');
+        // Re-render chart now that the canvas is visible
+        renderCategorySummary();
+      }
+    }
+
+    // =============================================================================
     // --- FORM LOGIC ---
     // =============================================================================
 
     function setFormType(type) {
       currentType = type;
-
       btnTypeIncome.className  = 'type-toggle__btn';
       btnTypeExpense.className = 'type-toggle__btn';
-
-      if (type === 'income')  btnTypeIncome.classList.add('active--income');
-      else                    btnTypeExpense.classList.add('active--expense');
-
+      if (type === 'income') btnTypeIncome.classList.add('active--income');
+      else                   btnTypeExpense.classList.add('active--expense');
       renderFormCategoryOptions();
     }
 
@@ -1312,17 +1386,14 @@
         showFieldError(errorAmount, inputAmount);
         valid = false;
       }
-
       if (!inputCategory.value) {
         showFieldError(errorCategory, inputCategory);
         valid = false;
       }
-
       if (!inputDescription.value.trim()) {
         showFieldError(errorDescription, inputDescription);
         valid = false;
       }
-
       if (!inputDate.value) {
         showFieldError(errorDate, inputDate);
         valid = false;
@@ -1336,7 +1407,7 @@
       inputDescription.value = '';
       inputDate.value        = getTodayStr();
       clearFormErrors();
-      renderFormCategoryOptions(); // restore category list for current type
+      renderFormCategoryOptions();
     }
 
     function showSubmitSuccess() {
@@ -1354,8 +1425,7 @@
 
     function exportCsv() {
       const header = ['Date', 'Type', 'Category', 'Description', 'Amount'];
-
-      const rows = sortByDateDesc(transactions).map(t => [
+      const rows   = sortByDateDesc(transactions).map(t => [
         t.date,
         t.type,
         t.category,
@@ -1367,7 +1437,6 @@
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
-
       a.href     = url;
       a.download = `transactions_${getTodayStr()}.csv`;
       document.body.appendChild(a);
@@ -1379,6 +1448,11 @@
     // =============================================================================
     // --- EVENT LISTENERS ---
     // =============================================================================
+
+    // Bottom nav
+    navBtnAdd.addEventListener('click',     () => switchView('add'));
+    navBtnHistory.addEventListener('click', () => switchView('history'));
+    document.getElementById('nav-btn-poker').addEventListener('click', () => { window.location.href = 'poker.html'; });
 
     // Form type toggle
     btnTypeIncome.addEventListener('click',  () => setFormType('income'));
@@ -1406,24 +1480,12 @@
     });
 
     // Clear inline errors on field interaction
-    inputAmount.addEventListener('input', () => {
-      errorAmount.classList.remove('visible');
-      inputAmount.classList.remove('error');
-    });
-    inputCategory.addEventListener('change', () => {
-      errorCategory.classList.remove('visible');
-      inputCategory.classList.remove('error');
-    });
-    inputDescription.addEventListener('input', () => {
-      errorDescription.classList.remove('visible');
-      inputDescription.classList.remove('error');
-    });
-    inputDate.addEventListener('change', () => {
-      errorDate.classList.remove('visible');
-      inputDate.classList.remove('error');
-    });
+    inputAmount.addEventListener('input',    () => { errorAmount.classList.remove('visible');      inputAmount.classList.remove('error'); });
+    inputCategory.addEventListener('change', () => { errorCategory.classList.remove('visible');    inputCategory.classList.remove('error'); });
+    inputDescription.addEventListener('input', () => { errorDescription.classList.remove('visible'); inputDescription.classList.remove('error'); });
+    inputDate.addEventListener('change',     () => { errorDate.classList.remove('visible');        inputDate.classList.remove('error'); });
 
-    // Delete transaction — event delegation on list container
+    // Delete transaction — event delegation
     transactionListEl.addEventListener('click', e => {
       const btn = e.target.closest('.btn-delete');
       if (!btn) return;
@@ -1431,60 +1493,38 @@
       renderAll();
     });
 
-    // Search filter — live on every keystroke
-    filterSearch.addEventListener('input', () => {
-      currentPage = 1;
-      renderTransactionList();
-    });
+    // Search — live on every keystroke
+    filterSearch.addEventListener('input', () => { currentPage = 1; renderTransactionList(); });
 
-    // Type filter — also updates category dropdown options
+    // Type filter — also refreshes category dropdown
     filterType.addEventListener('change', () => {
       currentPage = 1;
       renderFilterCategoryOptions();
       renderTransactionList();
     });
 
-    // Category filter
-    filterCategory.addEventListener('change', () => {
-      currentPage = 1;
-      renderTransactionList();
-    });
+    filterCategory.addEventListener('change', () => { currentPage = 1; renderTransactionList(); });
+    filterDateFrom.addEventListener('change',  () => { currentPage = 1; renderTransactionList(); });
+    filterDateTo.addEventListener('change',    () => { currentPage = 1; renderTransactionList(); });
 
-    // Date range filters
-    filterDateFrom.addEventListener('change', () => {
-      currentPage = 1;
-      renderTransactionList();
-    });
-    filterDateTo.addEventListener('change', () => {
-      currentPage = 1;
-      renderTransactionList();
-    });
-
-    // Clear filters button
+    // Clear filters
     btnClearFilters.addEventListener('click', () => {
       filterSearch.value   = '';
       filterType.value     = 'all';
       filterDateFrom.value = '';
       filterDateTo.value   = '';
-      renderFilterCategoryOptions(); // reset category dropdown to all
+      renderFilterCategoryOptions();
       currentPage = 1;
       renderTransactionList();
     });
 
     // Pagination
     btnPrevPage.addEventListener('click', () => {
-      if (currentPage > 1) {
-        currentPage--;
-        renderTransactionList();
-      }
+      if (currentPage > 1) { currentPage--; renderTransactionList(); }
     });
-
     btnNextPage.addEventListener('click', () => {
       const totalPages = Math.ceil(applyFilters(transactions).length / PAGE_SIZE);
-      if (currentPage < totalPages) {
-        currentPage++;
-        renderTransactionList();
-      }
+      if (currentPage < totalPages) { currentPage++; renderTransactionList(); }
     });
 
     // CSV export
@@ -1495,8 +1535,8 @@
     // =============================================================================
 
     function init() {
-      loadFromStorage();         // read from localStorage exactly once
-      setFormType('income');     // default form to income + populate categories
+      loadFromStorage();
+      setFormType('income');
       inputDate.value = getTodayStr();
       renderFilterCategoryOptions();
       renderAll();
@@ -1507,9 +1547,7 @@
     // --- SERVICE WORKER REGISTRATION ---
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(() => {
-          // SW registration failed silently — app still works online
-        });
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
       });
     }
   </script>
