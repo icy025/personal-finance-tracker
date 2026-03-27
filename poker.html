@@ -77,7 +77,7 @@
     ============================================================================= */
     .app-header {
       background: var(--color-primary);
-      padding: var(--spacing-md) var(--spacing-xl);
+      padding: calc(var(--spacing-md) + env(safe-area-inset-top, 0px)) var(--spacing-xl) var(--spacing-md);
       position: sticky;
       top: 0;
       z-index: 100;
@@ -724,16 +724,82 @@
     @media (max-width: 380px) {
       .financials-row { grid-template-columns: 1fr; }
     }
+
+    /* =============================================================================
+       HEADER TOP ROW + LOADING OVERLAY
+    ============================================================================= */
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .header-top .app-title { margin-bottom: 0; }
+
+    .btn-signout {
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.75);
+      background: none;
+      border: 1px solid rgba(255,255,255,0.4);
+      border-radius: var(--radius-sm);
+      padding: 4px 10px;
+      cursor: pointer;
+      font-family: var(--font-base);
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .btn-signout:hover { color: #fff; border-color: rgba(255,255,255,0.8); }
+
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--color-bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .loading-overlay.hidden { display: none; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--color-border);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .loading-text {
+      margin-top: 12px;
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Loading overlay -->
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Loading…</div>
+  </div>
 
   <!-- =====================================================================
        HEADER — always visible, all-time unfiltered stats
   ====================================================================== -->
   <header class="app-header">
     <div class="header-inner">
-      <h1 class="app-title">&#9824; Poker Tracker</h1>
+      <div class="header-top">
+        <h1 class="app-title">&#9824; Poker Tracker</h1>
+        <button class="btn-signout" id="btn-signout">Sign out</button>
+      </div>
       <div class="summary-cards">
         <div class="summary-card" id="hdr-pnl-card">
           <div class="summary-card__label">Net P&amp;L</div>
@@ -962,16 +1028,29 @@
     </button>
   </nav>
 
+  <!-- Supabase -->
+  <script src="supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <script>
     'use strict';
 
     // =============================================================================
+    // --- SUPABASE CLIENT ---
+    // =============================================================================
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true },
+    });
+
+    let currentUser = null;
+
+    // =============================================================================
     // --- CONSTANTS ---
     // =============================================================================
-    const POKER_KEY   = 'poker_sessions';
-    const TAGS_KEY    = 'poker_tags';
-    const FINANCE_KEY = 'finance_transactions';
-    const PAGE_SIZE   = 10;
+    // Legacy localStorage keys — used only for first-login migration
+    const LS_POKER_SESSIONS = 'poker_sessions';
+    const LS_POKER_TAGS     = 'poker_tags';
+    const PAGE_SIZE         = 10;
 
     // =============================================================================
     // --- DOM ELEMENT CACHE ---
@@ -1096,82 +1175,130 @@
     }
 
     // =============================================================================
-    // --- DATA LAYER ---
+    // --- DATA LAYER (Supabase) ---
     // =============================================================================
 
-    function loadSessions() {
-      const raw = localStorage.getItem(POKER_KEY);
-      if (!raw) { sessions = []; return; }
+    async function loadData() {
+      const uid = currentUser.id;
+
+      const [{ data: sessionRows }, { data: tagRows }] = await Promise.all([
+        db.from('poker_sessions').select('*').eq('user_id', uid).order('start_date', { ascending: false }),
+        db.from('poker_tags').select('*').eq('user_id', uid),
+      ]);
+
+      sessions = (sessionRows || []).map(r => ({
+        id: r.id, startDate: r.start_date, endDate: r.end_date,
+        buyIn: r.buy_in, totalIn: r.total_in, cashOut: r.cash_out,
+        rebuy: r.rebuy, result: r.result, title: r.title, tags: r.tags || [],
+      }));
+
+      tags = (tagRows || []).map(r => r.name);
+
+      // First-login migration
+      if (sessions.length === 0 && tags.length === 0) {
+        await migrateLocalStorage(uid);
+      }
+    }
+
+    async function migrateLocalStorage(uid) {
       try {
-        const p = JSON.parse(raw);
-        sessions = Array.isArray(p) ? p : [];
-      } catch (_) { sessions = []; }
-    }
+        const rawSessions = localStorage.getItem(LS_POKER_SESSIONS);
+        if (rawSessions) {
+          const local = JSON.parse(rawSessions);
+          if (Array.isArray(local) && local.length > 0) {
+            const rows = local.map(s => ({
+              id: s.id, user_id: uid,
+              start_date: s.startDate, end_date: s.endDate,
+              buy_in: s.buyIn, total_in: s.totalIn, cash_out: s.cashOut,
+              rebuy: s.rebuy, result: s.result,
+              title: s.title || '', tags: s.tags || [],
+            }));
+            const { error } = await db.from('poker_sessions').insert(rows);
+            if (!error) {
+              sessions = local;
+              localStorage.removeItem(LS_POKER_SESSIONS);
+              // Also sync to finance tracker in Supabase
+              for (const s of local) await syncToFinanceTracker(s);
+            }
+          }
+        }
+      } catch (_) {}
 
-    function saveSessions() {
-      localStorage.setItem(POKER_KEY, JSON.stringify(sessions));
-    }
-
-    function loadTags() {
-      const raw = localStorage.getItem(TAGS_KEY);
-      if (!raw) { tags = []; return; }
       try {
-        const p = JSON.parse(raw);
-        tags = Array.isArray(p) ? p : [];
-      } catch (_) { tags = []; }
+        const rawTags = localStorage.getItem(LS_POKER_TAGS);
+        if (rawTags) {
+          const local = JSON.parse(rawTags);
+          if (Array.isArray(local) && local.length > 0) {
+            const rows = local.map(name => ({ id: generateId(), user_id: uid, name }));
+            const { error } = await db.from('poker_tags').insert(rows);
+            if (!error) {
+              tags = local;
+              localStorage.removeItem(LS_POKER_TAGS);
+            }
+          }
+        }
+      } catch (_) {}
     }
 
-    function saveTags() {
-      localStorage.setItem(TAGS_KEY, JSON.stringify(tags));
-    }
-
-    function addSession(session) {
-      sessions.push(session);
-      saveSessions();
-      syncToFinanceTracker(session);
-    }
-
-    function deleteSession(id) {
-      sessions = sessions.filter(s => s.id !== id);
-      saveSessions();
-      removeFromFinanceTracker(id);
-    }
-
-    // --- Finance Tracker sync — write-only, no reads beyond what's needed ---
-
-    function syncToFinanceTracker(session) {
-      if (session.result === 0) return; // break-even: no financial impact
-
-      let txns = [];
-      try {
-        const raw = localStorage.getItem(FINANCE_KEY);
-        txns = raw ? JSON.parse(raw) : [];
-        if (!Array.isArray(txns)) txns = [];
-      } catch (_) { txns = []; }
-
-      // Remove existing entry for this session (idempotent)
-      txns = txns.filter(t => t.id !== session.id);
-
-      txns.push({
-        id:          session.id,
-        type:        session.result > 0 ? 'income' : 'expense',
-        amount:      parseFloat(Math.abs(session.result).toFixed(2)),
-        category:    'Poker',
-        description: session.title || 'Poker Session',
-        date:        session.startDate,
+    async function addSession(session) {
+      const { error } = await db.from('poker_sessions').insert({
+        id: session.id, user_id: currentUser.id,
+        start_date: session.startDate, end_date: session.endDate,
+        buy_in: session.buyIn, total_in: session.totalIn, cash_out: session.cashOut,
+        rebuy: session.rebuy, result: session.result,
+        title: session.title || '', tags: session.tags || [],
       });
-
-      localStorage.setItem(FINANCE_KEY, JSON.stringify(txns));
+      if (!error) {
+        sessions.unshift(session);
+        await syncToFinanceTracker(session);
+      }
     }
 
-    function removeFromFinanceTracker(id) {
-      let txns = [];
-      try {
-        const raw = localStorage.getItem(FINANCE_KEY);
-        txns = raw ? JSON.parse(raw) : [];
-        if (!Array.isArray(txns)) txns = [];
-      } catch (_) { txns = []; }
-      localStorage.setItem(FINANCE_KEY, JSON.stringify(txns.filter(t => t.id !== id)));
+    async function deleteSession(id) {
+      const { error } = await db.from('poker_sessions').delete()
+        .eq('id', id).eq('user_id', currentUser.id);
+      if (!error) {
+        sessions = sessions.filter(s => s.id !== id);
+        await removeFromFinanceTracker(id);
+      }
+    }
+
+    // --- Finance Tracker sync (now writes to Supabase instead of localStorage) ---
+
+    async function syncToFinanceTracker(session) {
+      if (session.result === 0) return;
+      // Upsert: delete any existing entry then insert fresh
+      await db.from('transactions').delete()
+        .eq('id', session.id).eq('user_id', currentUser.id);
+      await db.from('transactions').insert({
+        id: session.id, user_id: currentUser.id,
+        type: session.result > 0 ? 'income' : 'expense',
+        amount: parseFloat(Math.abs(session.result).toFixed(2)),
+        category: 'Poker',
+        description: session.title || 'Poker Session',
+        date: session.startDate,
+      });
+    }
+
+    async function removeFromFinanceTracker(id) {
+      await db.from('transactions').delete()
+        .eq('id', id).eq('user_id', currentUser.id);
+    }
+
+    async function addTag(name) {
+      const id = generateId();
+      const { error } = await db.from('poker_tags').insert({ id, user_id: currentUser.id, name });
+      if (!error) tags.push(name);
+    }
+
+    async function deleteTag(name) {
+      const { error } = await db.from('poker_tags').delete()
+        .eq('name', name).eq('user_id', currentUser.id);
+      if (!error) {
+        tags = tags.filter(t => t !== name);
+        // Remove this tag from all sessions locally (DB cascades via tags array)
+        for (const s of sessions) s.tags = s.tags.filter(t => t !== name);
+      }
     }
 
     // =============================================================================
@@ -1426,25 +1553,6 @@
     // --- TAG LOGIC ---
     // =============================================================================
 
-    function addTag(name) {
-      const cleaned = name.trim();
-      if (!cleaned || tags.includes(cleaned)) return false;
-      tags.push(cleaned);
-      saveTags();
-      return true;
-    }
-
-    function deleteTag(name) {
-      tags = tags.filter(t => t !== name);
-      // Remove tag from all sessions
-      for (const s of sessions) {
-        s.tags = (s.tags || []).filter(t => t !== name);
-      }
-      selectedFormTags = selectedFormTags.filter(t => t !== name);
-      saveTags();
-      saveSessions();
-    }
-
     // =============================================================================
     // --- FORM LOGIC ---
     // =============================================================================
@@ -1581,46 +1689,48 @@
     });
 
     // Add tag from form
-    function handleAddTagForm() {
+    async function handleAddTagForm() {
       const name = newTagInput.value.trim();
-      if (!name) return;
-      if (addTag(name)) {
-        selectedFormTags.push(name);
-        newTagInput.value = '';
-        renderFormTagChips();
-        renderTagFilterOptions();
-        renderTagManager();
-      }
+      if (!name || tags.includes(name)) return;
+      await addTag(name);
+      selectedFormTags.push(name);
+      newTagInput.value = '';
+      renderFormTagChips();
+      renderTagFilterOptions();
+      renderTagManager();
     }
     btnAddTag.addEventListener('click', handleAddTagForm);
     newTagInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); handleAddTagForm(); } });
 
     // Add tag from manager
-    function handleAddTagManager() {
+    async function handleAddTagManager() {
       const name = managerTagInput.value.trim();
-      if (!name) return;
-      if (addTag(name)) {
-        managerTagInput.value = '';
-        renderFormTagChips();
-        renderTagFilterOptions();
-        renderTagManager();
-      }
+      if (!name || tags.includes(name)) return;
+      await addTag(name);
+      managerTagInput.value = '';
+      renderFormTagChips();
+      renderTagFilterOptions();
+      renderTagManager();
     }
     btnManagerAddTag.addEventListener('click', handleAddTagManager);
     managerTagInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); handleAddTagManager(); } });
 
     // Delete tag from manager
-    tagManagerChips.addEventListener('click', e => {
+    tagManagerChips.addEventListener('click', async e => {
       const chip = e.target.closest('.tag-chip--delete');
       if (!chip) return;
-      deleteTag(chip.dataset.tag);
+      selectedFormTags = selectedFormTags.filter(t => t !== chip.dataset.tag);
+      await deleteTag(chip.dataset.tag);
       renderAll();
     });
 
     // Form submit
-    sessionForm.addEventListener('submit', e => {
+    sessionForm.addEventListener('submit', async e => {
       e.preventDefault();
       if (!validateForm()) return;
+
+      const btnSubmitEl = document.getElementById('btn-submit');
+      if (btnSubmitEl) btnSubmitEl.disabled = true;
 
       const buyin   = parseFloat(parseFloat(inputBuyin.value).toFixed(2));
       const totalin = parseFloat(parseFloat(inputTotalin.value).toFixed(2));
@@ -1639,17 +1749,19 @@
         tags:      [...selectedFormTags],
       };
 
-      addSession(session);
+      await addSession(session);
+      if (btnSubmitEl) btnSubmitEl.disabled = false;
       resetForm();
       showSubmitSuccess();
       renderAll();
     });
 
     // Delete session — event delegation
-    sessionListEl.addEventListener('click', e => {
+    sessionListEl.addEventListener('click', async e => {
       const btn = e.target.closest('.btn-delete');
       if (!btn) return;
-      deleteSession(btn.dataset.id);
+      await deleteSession(btn.dataset.id);
+      currentPage = 1;
       renderAll();
     });
 
@@ -1686,16 +1798,42 @@
     });
 
     // =============================================================================
+    // --- LOADING OVERLAY ---
+    // =============================================================================
+    const loadingOverlay = document.getElementById('loading-overlay');
+    function hideLoading() { loadingOverlay.classList.add('hidden'); }
+
+    // =============================================================================
+    // --- SIGN-OUT ---
+    // =============================================================================
+    document.getElementById('btn-signout').addEventListener('click', async () => {
+      await db.auth.signOut();
+      window.location.replace('login.html');
+    });
+
+    db.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') window.location.replace('login.html');
+    });
+
+    // =============================================================================
     // --- INITIALIZATION ---
     // =============================================================================
 
-    function init() {
-      loadSessions();
-      loadTags();
+    async function init() {
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) {
+        window.location.replace('login.html');
+        return;
+      }
+      currentUser = session.user;
+
+      await loadData();
+
       const today          = getTodayStr();
       inputStartDate.value = today;
       inputEndDate.value   = today;
       renderAll();
+      hideLoading();
     }
 
     init();

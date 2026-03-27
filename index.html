@@ -87,7 +87,7 @@
     .app-header {
       background: var(--color-surface);
       border-bottom: 1px solid var(--color-border);
-      padding: var(--spacing-md) var(--spacing-xl);
+      padding: calc(var(--spacing-md) + env(safe-area-inset-top, 0px)) var(--spacing-xl) var(--spacing-md);
       position: sticky;
       top: 0;
       z-index: 100;
@@ -758,6 +758,245 @@
         font-size: 0.88rem;
       }
     }
+
+    /* =============================================================================
+       TOGGLE SWITCH
+    ============================================================================= */
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      flex-shrink: 0;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 42px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--color-border);
+      border-radius: 24px;
+      transition: background 0.2s;
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    input:checked + .toggle-slider              { background: var(--color-income); }
+    input:checked + .toggle-slider::before      { transform: translateX(18px); }
+
+    /* =============================================================================
+       RECURRING ITEMS
+    ============================================================================= */
+    .type-toggle__btn.active--neutral {
+      background: var(--color-primary-bg);
+      color: var(--color-primary);
+    }
+
+    .recurring-empty {
+      text-align: center;
+      color: var(--color-text-muted);
+      padding: var(--spacing-xl) 0;
+      font-size: 0.95rem;
+    }
+
+    .recurring-item {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+      padding: var(--spacing-md);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--spacing-sm);
+      background: var(--color-surface);
+      transition: box-shadow 0.15s, opacity 0.2s;
+    }
+
+    .recurring-item:last-child  { margin-bottom: 0; }
+    .recurring-item:hover       { box-shadow: var(--shadow-sm); }
+    .recurring-item.inactive    { opacity: 0.5; }
+
+    .recurring-item__info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .recurring-item__desc {
+      font-weight: 600;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+
+    .recurring-item__meta {
+      display: flex;
+      gap: var(--spacing-sm);
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .recurring-item__schedule { font-size: 0.78rem; color: var(--color-text-muted); }
+    .recurring-item__next     { font-size: 0.72rem; color: var(--color-text-muted); font-style: italic; }
+
+    .recurring-item__amount             { font-weight: 700; font-size: 0.95rem; white-space: nowrap; }
+    .recurring-item__amount--income     { color: var(--color-income); }
+    .recurring-item__amount--expense    { color: var(--color-expense); }
+
+    /* =============================================================================
+       RECURRING CHECKBOX
+    ============================================================================= */
+    .recurring-check-group {
+      margin-top: var(--spacing-xs);
+    }
+
+    .recurring-check-label {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      cursor: pointer;
+      font-size: 0.92rem;
+      font-weight: 500;
+      color: var(--color-text);
+      user-select: none;
+    }
+
+    .recurring-check-label input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      accent-color: var(--color-primary);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    #recurring-options {
+      border-left: 3px solid var(--color-primary-bg);
+      padding-left: var(--spacing-md);
+      margin-top: var(--spacing-sm);
+    }
+
+    /* =============================================================================
+       COLLAPSIBLE PANEL HEADER
+    ============================================================================= */
+    .panel__header--collapsible {
+      width: 100%;
+      background: none;
+      border: none;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      padding: var(--spacing-md) var(--spacing-lg);
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      border-bottom: 1px solid transparent;
+    }
+
+    .panel__header--collapsible:hover {
+      color: var(--color-text);
+      background: #fafafa;
+    }
+
+    .panel__header--collapsible[aria-expanded="true"] {
+      border-bottom-color: var(--color-border);
+    }
+
+    .panel-collapse-icon {
+      font-size: 0.75rem;
+      transition: transform 0.2s;
+    }
+
+    .panel__header--collapsible[aria-expanded="true"] .panel-collapse-icon {
+      transform: rotate(90deg);
+    }
+
+    /* =============================================================================
+       HEADER TOP ROW (title + sign-out)
+    ============================================================================= */
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .header-top .app-title { margin-bottom: 0; }
+
+    .btn-signout {
+      font-size: 0.78rem;
+      color: var(--color-text-muted);
+      background: none;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: 4px 10px;
+      cursor: pointer;
+      font-family: var(--font-base);
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .btn-signout:hover { color: var(--color-text); border-color: #bdbdbd; }
+
+    /* =============================================================================
+       LOADING OVERLAY
+    ============================================================================= */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--color-bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .loading-overlay.hidden { display: none; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--color-border);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .loading-text {
+      margin-top: 12px;
+      color: var(--color-text-muted);
+      font-size: 0.9rem;
+    }
   </style>
 </head>
 <body>
@@ -765,9 +1004,18 @@
   <!-- =====================================================================
        HEADER — always visible, contains summary cards
   ====================================================================== -->
+  <!-- Loading overlay -->
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Loading…</div>
+  </div>
+
   <header class="app-header">
     <div class="header-inner">
-      <h1 class="app-title">Personal Finance Tracker</h1>
+      <div class="header-top">
+        <h1 class="app-title">Personal Finance Tracker</h1>
+        <button class="btn-signout" id="btn-signout">Sign out</button>
+      </div>
       <div class="summary-cards">
         <div class="summary-card summary-card--income">
           <div class="summary-card__label">Income</div>
@@ -849,6 +1097,42 @@
               <span class="form-error" id="error-date">Please select a date</span>
             </div>
 
+            <!-- Recurring Checkbox -->
+            <div class="form-group recurring-check-group">
+              <label class="recurring-check-label">
+                <input type="checkbox" id="input-recurring">
+                <span>Make this a recurring transaction</span>
+              </label>
+            </div>
+
+            <!-- Recurring Options — revealed when checkbox is checked -->
+            <div id="recurring-options" style="display:none;">
+
+              <!-- Schedule type -->
+              <div class="form-group">
+                <label class="form-label">Schedule</label>
+                <div class="type-toggle">
+                  <button type="button" class="type-toggle__btn active--neutral" id="rec-btn-monthly">Monthly</button>
+                  <button type="button" class="type-toggle__btn" id="rec-btn-interval">Every N Days</button>
+                </div>
+              </div>
+
+              <!-- Monthly: day of month -->
+              <div class="form-group" id="rec-monthly-group">
+                <label class="form-label" for="rec-input-day">Day of Month (1&#8211;31)</label>
+                <input type="number" id="rec-input-day" class="form-control" min="1" max="31" step="1" placeholder="e.g. 15">
+                <span class="form-error" id="rec-error-day">Enter a day between 1 and 31</span>
+              </div>
+
+              <!-- Interval: every N days -->
+              <div class="form-group" id="rec-interval-group" style="display:none;">
+                <label class="form-label" for="rec-input-interval">Repeat Every (days)</label>
+                <input type="number" id="rec-input-interval" class="form-control" min="1" step="1" placeholder="e.g. 30">
+                <span class="form-error" id="rec-error-interval">Enter a number of days (minimum 1)</span>
+              </div>
+
+            </div>
+
             <button type="submit" class="btn-submit" id="btn-submit">Add Transaction</button>
           </form>
         </div>
@@ -922,6 +1206,19 @@
         </div>
       </div>
 
+      <!-- Recurring Transactions -->
+      <div class="panel">
+        <button type="button" class="panel__header panel__header--collapsible" id="recurring-panel-toggle" aria-expanded="false">
+          <span>&#8635; Recurring Transactions</span>
+          <span class="panel-collapse-icon">&#9654;</span>
+        </button>
+        <div id="recurring-panel-body" style="display:none;">
+          <div style="padding: var(--spacing-md) var(--spacing-lg);" id="recurring-list">
+            <div class="recurring-empty">No recurring transactions yet.</div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -943,6 +1240,10 @@
     </button>
   </nav>
 
+  <!-- Supabase -->
+  <script src="supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
@@ -950,13 +1251,24 @@
     'use strict';
 
     // =============================================================================
+    // --- SUPABASE CLIENT ---
+    // =============================================================================
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true },
+    });
+
+    let currentUser = null;
+
+    // =============================================================================
     // --- CONSTANTS ---
     // =============================================================================
     const INCOME_CATEGORIES  = ['Salary', 'Freelance', 'Investment', 'Gift', 'Poker', 'Other Income'];
     const EXPENSE_CATEGORIES = ['Food', 'Transport', 'Housing', 'Entertainment', 'Healthcare', 'Shopping', 'Utilities', 'Poker', 'Other Expense'];
     const ALL_CATEGORIES     = [...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES];
-    const STORAGE_KEY        = 'finance_transactions';
-    const PAGE_SIZE          = 10;
+    // Legacy localStorage keys — used only during first-login migration
+    const LS_TRANSACTIONS = 'finance_transactions';
+    const LS_RECURRING    = 'finance_recurring';
+    const PAGE_SIZE       = 10;
 
     // =============================================================================
     // --- DOM ELEMENT CACHE ---
@@ -969,10 +1281,27 @@
     const summaryBalanceCard = document.getElementById('summary-balance-card');
 
     // Views + nav
-    const viewAdd        = document.getElementById('view-add');
-    const viewHistory    = document.getElementById('view-history');
-    const navBtnAdd      = document.getElementById('nav-btn-add');
-    const navBtnHistory  = document.getElementById('nav-btn-history');
+    const viewAdd       = document.getElementById('view-add');
+    const viewHistory   = document.getElementById('view-history');
+    const navBtnAdd     = document.getElementById('nav-btn-add');
+    const navBtnHistory = document.getElementById('nav-btn-history');
+
+    // Recurring inline fields (inside add form)
+    const inputRecurring   = document.getElementById('input-recurring');
+    const recurringOptions = document.getElementById('recurring-options');
+    const recBtnMonthly    = document.getElementById('rec-btn-monthly');
+    const recBtnInterval   = document.getElementById('rec-btn-interval');
+    const recMonthlyGroup  = document.getElementById('rec-monthly-group');
+    const recIntervalGroup = document.getElementById('rec-interval-group');
+    const recInputDay      = document.getElementById('rec-input-day');
+    const recInputInterval = document.getElementById('rec-input-interval');
+    const recErrorDay      = document.getElementById('rec-error-day');
+    const recErrorInterval = document.getElementById('rec-error-interval');
+
+    // Recurring list + collapsible panel (in history view)
+    const recurringListEl      = document.getElementById('recurring-list');
+    const recurringPanelToggle = document.getElementById('recurring-panel-toggle');
+    const recurringPanelBody   = document.getElementById('recurring-panel-body');
 
     // Form
     const transactionForm  = document.getElementById('transaction-form');
@@ -1016,10 +1345,12 @@
     // =============================================================================
     // --- APP STATE ---
     // =============================================================================
-    let transactions  = [];       // single source of truth — populated once from localStorage
-    let currentPage   = 1;
-    let currentType   = 'income'; // active form type toggle
-    let spendingChart = null;
+    let transactions    = [];       // single source of truth — populated once from localStorage
+    let recurringItems  = [];       // populated once from localStorage
+    let currentPage     = 1;
+    let currentType     = 'income'; // active form type toggle
+    let recScheduleType = 'monthly'; // recurring schedule type
+    let spendingChart   = null;
 
     // =============================================================================
     // --- UTILITIES ---
@@ -1059,34 +1390,92 @@
     }
 
     // =============================================================================
-    // --- DATA LAYER ---
+    // --- DATA LAYER (Supabase) ---
     // =============================================================================
 
-    /** Read from localStorage exactly once, on init */
-    function loadFromStorage() {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) { transactions = []; return; }
-      try {
-        const parsed = JSON.parse(raw);
-        transactions = Array.isArray(parsed) ? parsed : [];
-      } catch (_) {
-        transactions = [];
+    /** Load all data for the current user; migrate from localStorage on first login. */
+    async function loadData() {
+      const uid = currentUser.id;
+
+      const [{ data: txnRows }, { data: recRows }] = await Promise.all([
+        db.from('transactions').select('*').eq('user_id', uid),
+        db.from('recurring_items').select('*').eq('user_id', uid),
+      ]);
+
+      transactions = (txnRows || []).map(r => ({
+        id: r.id, type: r.type, amount: r.amount,
+        category: r.category, description: r.description, date: r.date,
+      }));
+
+      recurringItems = (recRows || []).map(r => ({
+        id: r.id, type: r.type, amount: r.amount,
+        category: r.category, description: r.description,
+        scheduleType: r.schedule_type, monthlyDay: r.monthly_day,
+        intervalDays: r.interval_days, startDate: r.start_date,
+        lastPosted: r.last_posted, active: r.active,
+      }));
+
+      // First-login migration: import existing localStorage data
+      if (transactions.length === 0 && recurringItems.length === 0) {
+        await migrateLocalStorage(uid);
       }
     }
 
-    /** Serialize and persist the full transactions array */
-    function saveToStorage() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+    /** One-time migration of localStorage data into Supabase. */
+    async function migrateLocalStorage(uid) {
+      try {
+        const rawTxns = localStorage.getItem(LS_TRANSACTIONS);
+        if (rawTxns) {
+          const local = JSON.parse(rawTxns);
+          if (Array.isArray(local) && local.length > 0) {
+            const rows = local.map(t => ({
+              id: t.id, user_id: uid, type: t.type, amount: t.amount,
+              category: t.category, description: t.description, date: t.date,
+            }));
+            const { error } = await db.from('transactions').insert(rows);
+            if (!error) {
+              transactions = local;
+              localStorage.removeItem(LS_TRANSACTIONS);
+            }
+          }
+        }
+      } catch (_) {}
+
+      try {
+        const rawRec = localStorage.getItem(LS_RECURRING);
+        if (rawRec) {
+          const local = JSON.parse(rawRec);
+          if (Array.isArray(local) && local.length > 0) {
+            const rows = local.map(r => ({
+              id: r.id, user_id: uid, type: r.type, amount: r.amount,
+              category: r.category, description: r.description,
+              schedule_type: r.scheduleType, monthly_day: r.monthlyDay,
+              interval_days: r.intervalDays, start_date: r.startDate,
+              last_posted: r.lastPosted, active: r.active,
+            }));
+            const { error } = await db.from('recurring_items').insert(rows);
+            if (!error) {
+              recurringItems = local;
+              localStorage.removeItem(LS_RECURRING);
+            }
+          }
+        }
+      } catch (_) {}
     }
 
-    function addTransaction(txn) {
-      transactions.push(txn);
-      saveToStorage();
+    async function addTransaction(txn) {
+      const { error } = await db.from('transactions').insert({
+        id: txn.id, user_id: currentUser.id, type: txn.type,
+        amount: txn.amount, category: txn.category,
+        description: txn.description, date: txn.date,
+      });
+      if (!error) transactions.push(txn);
     }
 
-    function deleteTransactionById(id) {
-      transactions = transactions.filter(t => t.id !== id);
-      saveToStorage();
+    async function deleteTransactionById(id) {
+      const { error } = await db.from('transactions').delete()
+        .eq('id', id).eq('user_id', currentUser.id);
+      if (!error) transactions = transactions.filter(t => t.id !== id);
     }
 
     // =============================================================================
@@ -1343,6 +1732,8 @@
         navBtnAdd.classList.remove('active');
         // Re-render chart now that the canvas is visible
         renderCategorySummary();
+        // Refresh recurring list if panel is open
+        if (recurringPanelToggle.getAttribute('aria-expanded') === 'true') renderRecurringList();
       }
     }
 
@@ -1459,20 +1850,66 @@
     btnTypeExpense.addEventListener('click', () => setFormType('expense'));
 
     // Form submission
-    transactionForm.addEventListener('submit', e => {
+    transactionForm.addEventListener('submit', async e => {
       e.preventDefault();
       if (!validateForm()) return;
 
-      const txn = {
-        id:          generateId(),
-        type:        currentType,
-        amount:      parseFloat(parseFloat(inputAmount.value).toFixed(2)),
-        category:    inputCategory.value,
-        description: inputDescription.value.trim(),
-        date:        inputDate.value,
-      };
+      // Extra validation when recurring is checked
+      if (inputRecurring.checked) {
+        let recValid = true;
+        if (recScheduleType === 'monthly') {
+          const day = parseInt(recInputDay.value, 10);
+          if (!recInputDay.value || isNaN(day) || day < 1 || day > 31) {
+            recErrorDay.classList.add('visible'); recInputDay.classList.add('error'); recValid = false;
+          }
+        } else {
+          const days = parseInt(recInputInterval.value, 10);
+          if (!recInputInterval.value || isNaN(days) || days < 1) {
+            recErrorInterval.classList.add('visible'); recInputInterval.classList.add('error'); recValid = false;
+          }
+        }
+        if (!recValid) return;
+      }
 
-      addTransaction(txn);
+      const btnSubmitEl = document.getElementById('btn-submit');
+      btnSubmitEl.disabled = true;
+
+      if (inputRecurring.checked) {
+        const r = {
+          id:           generateId(),
+          type:         currentType,
+          amount:       parseFloat(parseFloat(inputAmount.value).toFixed(2)),
+          category:     inputCategory.value,
+          description:  inputDescription.value.trim(),
+          scheduleType: recScheduleType,
+          monthlyDay:   recScheduleType === 'monthly'  ? parseInt(recInputDay.value, 10)      : null,
+          intervalDays: recScheduleType === 'interval' ? parseInt(recInputInterval.value, 10) : null,
+          startDate:    inputDate.value,
+          lastPosted:   null,
+          active:       true,
+        };
+        const ok = await addRecurringItem(r);
+        if (ok) await processRecurring();
+      } else {
+        const txn = {
+          id:          generateId(),
+          type:        currentType,
+          amount:      parseFloat(parseFloat(inputAmount.value).toFixed(2)),
+          category:    inputCategory.value,
+          description: inputDescription.value.trim(),
+          date:        inputDate.value,
+        };
+        await addTransaction(txn);
+      }
+
+      // Reset recurring fields
+      inputRecurring.checked = false;
+      recurringOptions.style.display = 'none';
+      recInputDay.value = '';
+      recInputInterval.value = '';
+      setRecScheduleType('monthly');
+
+      btnSubmitEl.disabled = false;
       resetForm();
       showSubmitSuccess();
       currentPage = 1;
@@ -1486,10 +1923,11 @@
     inputDate.addEventListener('change',     () => { errorDate.classList.remove('visible');        inputDate.classList.remove('error'); });
 
     // Delete transaction — event delegation
-    transactionListEl.addEventListener('click', e => {
+    transactionListEl.addEventListener('click', async e => {
       const btn = e.target.closest('.btn-delete');
       if (!btn) return;
-      deleteTransactionById(btn.dataset.id);
+      await deleteTransactionById(btn.dataset.id);
+      currentPage = 1;
       renderAll();
     });
 
@@ -1531,15 +1969,309 @@
     btnExportCsv.addEventListener('click', exportCsv);
 
     // =============================================================================
+    // --- RECURRING — DATE HELPERS ---
+    // =============================================================================
+
+    function toDateStr(date) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
+    function addDaysToDate(dateStr, days) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const date = new Date(y, m - 1, d);
+      date.setDate(date.getDate() + days);
+      return toDateStr(date);
+    }
+
+    /**
+     * Returns the next calendar date on which the day-of-month equals `day`,
+     * strictly after `afterDateStr`. If `afterDateStr` is null, returns the
+     * first occurrence on or after `startDateStr`.
+     * Clamps to the last day of the month when `day` exceeds the month length.
+     */
+    function nextMonthlyOccurrence(day, afterDateStr, startDateStr) {
+      let year, month; // 1-indexed month
+
+      if (afterDateStr) {
+        [year, month] = afterDateStr.split('-').map(Number);
+      } else {
+        [year, month] = startDateStr.split('-').map(Number);
+        month -= 1; // start one month back so the loop considers this month first
+        if (month < 1) { month = 12; year -= 1; }
+      }
+
+      for (let i = 0; i < 25; i++) {
+        month++;
+        if (month > 12) { month = 1; year++; }
+        const lastDay   = new Date(year, month, 0).getDate();
+        const actualDay = Math.min(day, lastDay);
+        const candidate = `${year}-${String(month).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+        const afterOk   = !afterDateStr  || candidate > afterDateStr;
+        const startOk   = !startDateStr  || candidate >= startDateStr;
+        if (afterOk && startOk) return candidate;
+      }
+      return null;
+    }
+
+    function computeNextDue(r) {
+      if (r.scheduleType === 'monthly') {
+        return nextMonthlyOccurrence(r.monthlyDay, r.lastPosted || null, r.startDate);
+      } else {
+        if (!r.lastPosted) return r.startDate;
+        return addDaysToDate(r.lastPosted, r.intervalDays);
+      }
+    }
+
+    function ordinalDay(n) {
+      const s = ['th','st','nd','rd'];
+      const v = n % 100;
+      return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    }
+
+    function formatScheduleLabel(r) {
+      if (r.scheduleType === 'monthly') return `Monthly on the ${ordinalDay(r.monthlyDay)}`;
+      return `Every ${r.intervalDays} day${r.intervalDays !== 1 ? 's' : ''}`;
+    }
+
+    // =============================================================================
+    // --- RECURRING — DATA LAYER ---
+    // =============================================================================
+
+    async function addRecurringItem(r) {
+      const { error } = await db.from('recurring_items').insert({
+        id: r.id, user_id: currentUser.id, type: r.type, amount: r.amount,
+        category: r.category, description: r.description,
+        schedule_type: r.scheduleType, monthly_day: r.monthlyDay,
+        interval_days: r.intervalDays, start_date: r.startDate,
+        last_posted: r.lastPosted, active: r.active,
+      });
+      if (!error) recurringItems.push(r);
+      return !error;
+    }
+
+    async function deleteRecurringById(id) {
+      const { error } = await db.from('recurring_items').delete()
+        .eq('id', id).eq('user_id', currentUser.id);
+      if (!error) recurringItems = recurringItems.filter(r => r.id !== id);
+    }
+
+    async function toggleRecurringById(id) {
+      const r = recurringItems.find(r => r.id === id);
+      if (!r) return;
+      const newActive = !r.active;
+      const { error } = await db.from('recurring_items').update({ active: newActive })
+        .eq('id', id).eq('user_id', currentUser.id);
+      if (!error) r.active = newActive;
+    }
+
+    // =============================================================================
+    // --- RECURRING — AUTO-PROCESSING ---
+    // =============================================================================
+
+    /**
+     * On every app load: walk all active recurring items, post any that are due
+     * (including catch-up for multiple missed periods), and update lastPosted.
+     * All writes are batched for efficiency.
+     */
+    async function processRecurring() {
+      const today   = getTodayStr();
+      const newTxns = [];
+      const toUpdate = []; // { id, last_posted }
+
+      for (const r of recurringItems) {
+        if (!r.active) continue;
+        const original = r.lastPosted;
+        let nextDue    = computeNextDue(r);
+        let safety     = 0;
+
+        while (nextDue && nextDue <= today && safety < 120) {
+          newTxns.push({
+            id: generateId(), user_id: currentUser.id,
+            type: r.type, amount: r.amount,
+            category: r.category, description: r.description, date: nextDue,
+          });
+          r.lastPosted = nextDue;
+          nextDue      = computeNextDue(r);
+          safety++;
+        }
+
+        if (r.lastPosted !== original) {
+          toUpdate.push({ id: r.id, last_posted: r.lastPosted });
+        }
+      }
+
+      if (newTxns.length > 0) {
+        const { error } = await db.from('transactions').insert(newTxns);
+        if (!error) {
+          transactions.push(...newTxns.map(r => ({
+            id: r.id, type: r.type, amount: r.amount,
+            category: r.category, description: r.description, date: r.date,
+          })));
+        }
+      }
+
+      for (const u of toUpdate) {
+        await db.from('recurring_items').update({ last_posted: u.last_posted })
+          .eq('id', u.id).eq('user_id', currentUser.id);
+      }
+    }
+
+    // =============================================================================
+    // --- RECURRING — RENDER ---
+    // =============================================================================
+
+    function renderRecurringList() {
+      recurringListEl.innerHTML = '';
+
+      if (recurringItems.length === 0) {
+        recurringListEl.innerHTML = '<div class="recurring-empty">No recurring transactions yet.</div>';
+        return;
+      }
+
+      const frag = document.createDocumentFragment();
+      for (const r of recurringItems) {
+        const nextDue  = r.active ? computeNextDue(r) : null;
+        const nextText = nextDue ? `Next: ${formatDate(nextDue)}` : 'Paused';
+        const prefix   = r.type === 'income' ? '+' : '−';
+        const amtClass = `recurring-item__amount--${r.type}`;
+
+        const item = document.createElement('div');
+        item.className = 'recurring-item' + (r.active ? '' : ' inactive');
+        item.dataset.id = r.id;
+
+        item.innerHTML = `
+          <div class="toggle-wrap">
+            <label class="toggle-switch" title="${r.active ? 'Pause' : 'Resume'}">
+              <input type="checkbox" class="rec-toggle" data-id="${escapeHtml(r.id)}"${r.active ? ' checked' : ''}>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="recurring-item__info">
+            <div class="recurring-item__desc">${escapeHtml(r.description)}</div>
+            <div class="recurring-item__meta">
+              <span class="transaction-badge transaction-badge--${r.type}">${escapeHtml(r.category)}</span>
+              <span class="recurring-item__schedule">${formatScheduleLabel(r)}</span>
+              <span class="recurring-item__next">${nextText}</span>
+            </div>
+          </div>
+          <div class="recurring-item__amount ${amtClass}">${prefix}${formatCurrency(r.amount)}</div>
+          <button class="btn-delete rec-delete" data-id="${escapeHtml(r.id)}" aria-label="Delete recurring">&#215;</button>
+        `;
+
+        frag.appendChild(item);
+      }
+      recurringListEl.appendChild(frag);
+    }
+
+    // =============================================================================
+    // --- RECURRING — FORM LOGIC ---
+    // =============================================================================
+
+    function setRecScheduleType(type) {
+      recScheduleType = type;
+      recBtnMonthly.className  = 'type-toggle__btn';
+      recBtnInterval.className = 'type-toggle__btn';
+      if (type === 'monthly') {
+        recBtnMonthly.classList.add('active--neutral');
+        recMonthlyGroup.style.display  = '';
+        recIntervalGroup.style.display = 'none';
+      } else {
+        recBtnInterval.classList.add('active--neutral');
+        recMonthlyGroup.style.display  = 'none';
+        recIntervalGroup.style.display = '';
+      }
+    }
+
+    // =============================================================================
+    // --- RECURRING — EVENT LISTENERS ---
+    // =============================================================================
+
+    // Checkbox: show/hide schedule options
+    inputRecurring.addEventListener('change', () => {
+      recurringOptions.style.display = inputRecurring.checked ? '' : 'none';
+      if (!inputRecurring.checked) {
+        recInputDay.value = '';
+        recInputInterval.value = '';
+        recErrorDay.classList.remove('visible');      recInputDay.classList.remove('error');
+        recErrorInterval.classList.remove('visible'); recInputInterval.classList.remove('error');
+        setRecScheduleType('monthly');
+      }
+    });
+
+    // Schedule type toggles
+    recBtnMonthly.addEventListener('click',  () => setRecScheduleType('monthly'));
+    recBtnInterval.addEventListener('click', () => setRecScheduleType('interval'));
+
+    // Clear recurring errors on input
+    recInputDay.addEventListener('input',      () => { recErrorDay.classList.remove('visible');      recInputDay.classList.remove('error'); });
+    recInputInterval.addEventListener('input', () => { recErrorInterval.classList.remove('visible'); recInputInterval.classList.remove('error'); });
+
+    // Collapsible panel toggle in history view
+    recurringPanelToggle.addEventListener('click', () => {
+      const open = recurringPanelToggle.getAttribute('aria-expanded') === 'true';
+      recurringPanelToggle.setAttribute('aria-expanded', String(!open));
+      recurringPanelBody.style.display = open ? 'none' : '';
+      if (!open) renderRecurringList();
+    });
+
+    // Toggle active/inactive
+    recurringListEl.addEventListener('change', async e => {
+      if (!e.target.classList.contains('rec-toggle')) return;
+      await toggleRecurringById(e.target.dataset.id);
+      renderRecurringList();
+    });
+
+    // Delete recurring
+    recurringListEl.addEventListener('click', async e => {
+      const btn = e.target.closest('.rec-delete');
+      if (!btn) return;
+      await deleteRecurringById(btn.dataset.id);
+      renderRecurringList();
+    });
+
+    // =============================================================================
     // --- INITIALIZATION ---
     // =============================================================================
 
-    function init() {
-      loadFromStorage();
+    // =============================================================================
+    // --- LOADING OVERLAY ---
+    // =============================================================================
+    const loadingOverlay = document.getElementById('loading-overlay');
+    function hideLoading() { loadingOverlay.classList.add('hidden'); }
+
+    // =============================================================================
+    // --- SIGN-OUT ---
+    // =============================================================================
+    document.getElementById('btn-signout').addEventListener('click', async () => {
+      await db.auth.signOut();
+      window.location.replace('login.html');
+    });
+
+    // Redirect to login if session is lost
+    db.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') window.location.replace('login.html');
+    });
+
+    // =============================================================================
+    // --- INITIALIZATION ---
+    // =============================================================================
+    async function init() {
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) {
+        window.location.replace('login.html');
+        return;
+      }
+      currentUser = session.user;
+
+      await loadData();
+      await processRecurring();
+
       setFormType('income');
+      setRecScheduleType('monthly');
       inputDate.value = getTodayStr();
       renderFilterCategoryOptions();
       renderAll();
+      hideLoading();
     }
 
     init();

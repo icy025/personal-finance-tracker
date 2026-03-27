@@ -1,15 +1,18 @@
 // Service Worker — Personal Finance Tracker
 // Caches the app shell + Chart.js so the app works fully offline.
 
-const CACHE_NAME  = 'finance-tracker-v2';
-const CHART_JS_URL = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+const CACHE_NAME  = 'finance-tracker-v3';
+const CHART_JS_URL   = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+const SUPABASE_JS_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
 
 // Core local assets — these MUST be cached on install
 const STATIC_ASSETS = [
   './',
   './index.html',
   './poker.html',
+  './login.html',
   './manifest.json',
+  './supabase-config.js',
   './icon.svg',
   './poker-icon.svg',
 ];
@@ -21,8 +24,9 @@ self.addEventListener('install', event => {
     (async () => {
       const cache = await caches.open(CACHE_NAME);
       await cache.addAll(STATIC_ASSETS);
-      // Best-effort: cache Chart.js from CDN
+      // Best-effort: cache CDN scripts
       try { await cache.add(CHART_JS_URL); } catch (_) {}
+      try { await cache.add(SUPABASE_JS_URL); } catch (_) {}
     })()
   );
   // Activate immediately without waiting for old tabs to close
