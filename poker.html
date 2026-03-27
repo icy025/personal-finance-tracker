@@ -78,9 +78,7 @@
     .status-bar-spacer {
       height: 54px;
       background: var(--color-primary);
-      position: sticky;
-      top: 0;
-      z-index: 101;
+      margin: calc(-1 * var(--spacing-md)) calc(-1 * var(--spacing-xl)) var(--spacing-md);
     }
 
     .app-header {
@@ -802,8 +800,8 @@
   <!-- =====================================================================
        HEADER — always visible, all-time unfiltered stats
   ====================================================================== -->
-  <div class="status-bar-spacer"></div>
   <header class="app-header">
+    <div class="status-bar-spacer"></div>
     <div class="header-inner">
       <div class="header-top">
         <h1 class="app-title">&#9824; Poker Tracker</h1>
