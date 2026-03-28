@@ -1376,7 +1376,8 @@
     }
 
     function formatCurrency(amount) {
-      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+      const str = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+      return str.replace('-', '\u2011'); // non-breaking hyphen prevents wrapping
     }
 
     /** Format YYYY-MM-DD -> "Jan 05, 2024" without timezone shift */
